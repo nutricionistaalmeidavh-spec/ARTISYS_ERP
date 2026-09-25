@@ -31,7 +31,7 @@ function listJsFiles(root) {
   for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
     const full = path.join(root, entry.name);
     if (entry.isDirectory()) out.push(...listJsFiles(full));
-    else if (entry.isFile() && entry.name.endsWith('.js')) out.push(full);
+    else if (entry.isFile() && /\.(?:js|jsx|ts|tsx)$/.test(entry.name) && !entry.name.endsWith('.d.ts')) out.push(full);
   }
   return out;
 }
@@ -45,7 +45,7 @@ function scanDirectory(root) {
 }
 
 function main() {
-  const root = path.resolve(process.argv[2] || path.join(__dirname, '..', 'desktop', 'renderer'));
+  const root = path.resolve(process.argv[2] || path.join(__dirname, '..', 'frontend', 'src'));
   const violations = scanDirectory(root);
   if (violations.length) {
     for (const item of violations) console.error(`${item.file}:${item.line} forbidden renderer API: ${item.rule}`);
