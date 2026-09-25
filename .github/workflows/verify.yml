@@ -15,4 +15,5 @@ jobs:
           node-version: '22'
       - run: npm install --ignore-scripts
       - run: npm run verify
+      - run: npm rebuild electron
       - run: xvfb-run -a npm run e2e:smoke
