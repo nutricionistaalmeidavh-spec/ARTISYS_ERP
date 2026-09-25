@@ -1,0 +1,25 @@
+{
+  "name": "artisys-erp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ERP desktop local-first da ArtiSys",
+  "main": "desktop/main.cjs",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start:server": "node server/start.js",
+    "start:desktop": "electron .",
+    "test": "node --test test/*.test.js",
+    "lint": "node scripts/check-js-syntax.js",
+    "boundary:check": "node scripts/check-erp-boundaries.js",
+    "verify": "npm run boundary:check && npm run lint && npm test",
+    "dist:win": "electron-builder --win nsis --x64 --publish never"
+  },
+  "dependencies": {"@artisys/finance-domain":"file:vendor/artisys-finance-domain"},
+  "devDependencies": {"electron":"^39.8.10","electron-builder":"^26.0.12","playwright":"1.63.0"},
+  "build": {
+    "appId":"com.artisys.erp","productName":"ArtiSys ERP","asar":true,"directories":{"output":"dist"},
+    "files":["desktop/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/finance/**/*","js/domains/reports/**/*","server/**/*","release/**/*","vendor/artisys-finance-domain/**/*","package.json"],
+    "win":{"target":[{"target":"nsis","arch":["x64"]}],"artifactName":"ArtiSys-ERP-${version}-${arch}-Setup.${ext}"},
+    "nsis":{"oneClick":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true,"deleteAppDataOnUninstall":false}
+  }
+}

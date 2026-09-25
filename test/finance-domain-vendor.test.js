@@ -1,0 +1,4 @@
+'use strict';
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
+test('finance domain vendor metadata is pinned and MIT',()=>{const pkg=JSON.parse(fs.readFileSync('vendor/artisys-finance-domain/package.json','utf8'));assert.equal(pkg.name,'@artisys/finance-domain');assert.equal(pkg.version,'0.1.0');assert.equal(pkg.license,'MIT');});
+test('finance domain exports deterministic finance primitives',async()=>{const mod=await import(pathToFileUrl(path.join(process.cwd(),'vendor/artisys-finance-domain/src/index.mjs')));for(const name of ['sourceFingerprint','businessFingerprint','applyDeterministicRules','suggestReconciliation','stableHash'])assert.equal(typeof mod[name],'function');assert.ok(Array.isArray(mod.BASIC_PT_BR_FINANCE_RULES));});function pathToFileUrl(filename){return new URL(`file://${filename.replace(/\\/g,'/')}`).href;}
