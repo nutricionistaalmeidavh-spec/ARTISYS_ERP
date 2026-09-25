@@ -8,24 +8,42 @@
   "scripts": {
     "start:server": "node server/start.js",
     "start:desktop": "electron .",
+    "frontend:dev": "vite --config frontend/vite.config.ts",
+    "frontend:build": "vite build --config frontend/vite.config.ts",
+    "frontend:check": "tsc -p frontend/tsconfig.json --noEmit",
     "test": "node --test test/*.test.js",
     "lint": "node scripts/check-js-syntax.js",
     "boundary:check": "node scripts/check-erp-boundaries.js",
     "electron:compat": "node scripts/check-electron-renderer-compat.js",
-    "verify": "npm run boundary:check && npm run electron:compat && npm run lint && npm test",
+    "verify": "npm run frontend:check && npm run frontend:build && npm run boundary:check && npm run electron:compat && npm run lint && npm test",
     "e2e": "node --test qa/e2e/*.test.js",
     "e2e:smoke": "node --test qa/e2e/smoke.test.js",
     "qa:quick": "node qa/runtime/erp-qa.mjs quick --config qa/artisys-qa.config.json",
     "qa:full": "node qa/runtime/erp-qa.mjs full --config qa/artisys-qa.config.json",
     "qa:release": "node qa/runtime/erp-qa.mjs release --config qa/artisys-qa.config.json",
     "release:check": "npm run verify && node scripts/check-licenses.js && node scripts/check-customer-capabilities.js && npm run qa:release",
-    "dist:win": "electron-builder --win nsis --x64 --publish never"
+    "dist:win": "npm run frontend:build && electron-builder --win nsis --x64 --publish never"
   },
-  "dependencies": {"@artisys/eventbus":"file:vendor/artisys-eventbus","@artisys/finance-domain":"file:vendor/artisys-finance-domain","pdfjs-dist":"^6.3.289"},
-  "devDependencies": {"electron":"^39.8.10","electron-builder":"^26.0.12","playwright":"1.63.0"},
+  "dependencies": {
+    "@artisys/eventbus":"file:vendor/artisys-eventbus",
+    "@artisys/finance-domain":"file:vendor/artisys-finance-domain",
+    "pdfjs-dist":"^6.3.289",
+    "react":"^19.1.1",
+    "react-dom":"^19.1.1"
+  },
+  "devDependencies": {
+    "@types/react":"^19.1.12",
+    "@types/react-dom":"^19.1.9",
+    "@vitejs/plugin-react":"^5.0.2",
+    "electron":"^39.8.10",
+    "electron-builder":"^26.0.12",
+    "playwright":"1.63.0",
+    "typescript":"^5.9.2",
+    "vite":"^7.1.7"
+  },
   "build": {
     "appId":"com.artisys.erp","productName":"ArtiSys ERP","asar":true,"directories":{"output":"dist"},
-    "files":["desktop/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/finance/**/*","js/domains/reports/**/*","server/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
+    "files":["desktop/**/*","frontend/dist/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/finance/**/*","js/domains/reports/**/*","server/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
     "win":{"target":[{"target":"nsis","arch":["x64"]}],"artifactName":"ArtiSys-ERP-${version}-${arch}-Setup.${ext}"},
     "nsis":{"oneClick":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true,"deleteAppDataOnUninstall":false}
   }
