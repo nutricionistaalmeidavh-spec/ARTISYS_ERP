@@ -5,13 +5,13 @@ Critério: uma funcionalidade só é considerada verticalmente coberta quando ex
 | Funcionalidade | Backend/domínio | Persistência | API | Frontend | E2E usuário | Negativos | Status |
 |---|---|---|---|---|---|---|---|
 | Cliente: criar/editar/desativar/reativar | test/master-data-inventory.test.js | SQLite + reabertura/listagem | test/master-data-api.test.js | Cadastros | qa/e2e/master-data.test.js | permissão + inativo | COBERTO |
-| Fornecedor: CRUD/ciclo ativo | test/master-data-inventory.test.js | SQLite | test/master-data-api.test.js (parcial) | Cadastros | procurement cria fornecedor | permissão/inativo | PARCIAL |
-| Categoria de produto: criar/editar/ciclo ativo | test/master-data-inventory.test.js | SQLite | test/master-data-api.test.js | Cadastros | qa/e2e/master-data.test.js (criação) | categoria inativa/preço inválido | PARCIAL |
-| Produto: criar/editar/ciclo ativo | test/master-data-inventory.test.js | SQLite | test/master-data-api.test.js | Cadastros | qa/e2e/master-data.test.js | validações/permissão | PARCIAL |
+| Fornecedor: CRUD/ciclo ativo | test/master-data-inventory.test.js | SQLite | test/master-data-api.test.js (parcial) | Cadastros | qa/e2e/master-data.test.js | permissão/inativo | COBERTO |
+| Categoria de produto: criar/editar/ciclo ativo | test/master-data-inventory.test.js | SQLite | test/master-data-api.test.js | Cadastros | qa/e2e/master-data.test.js | categoria inativa/preço inválido | COBERTO |
+| Produto: criar/editar/ciclo ativo | test/master-data-inventory.test.js | SQLite | test/master-data-api.test.js | Cadastros | qa/e2e/master-data.test.js | validações/permissão | COBERTO |
 | Local de estoque: criar | inventory domain | SQLite | test/inventory-api.test.js | Estoque | qa/e2e/inventory.test.js | — | PARCIAL |
 | Ajuste de estoque | test/inventory-operations.test.js | operação+movimento | test/inventory-api.test.js | Estoque | qa/e2e/inventory.test.js | permissão/idempotência | COBERTO |
 | Transferência de estoque | test/inventory-operations.test.js | transação atômica | test/inventory-api.test.js | Estoque | qa/e2e/inventory.test.js | saldo insuficiente/origem=destino/idempotência | COBERTO |
-| Estorno de operação de estoque | test/inventory-operations.test.js | movimento compensatório | test/inventory-api.test.js | não evidenciado | não evidenciado | duplo estorno | PARCIAL |
+| Estorno de operação de estoque | test/inventory-operations.test.js | movimento compensatório | test/inventory-api.test.js | Estoque | qa/e2e/inventory.test.js | duplo estorno | COBERTO |
 | Reserva/liberação/consumo | test/master-data-inventory.test.js | SQLite | test/inventory-api.test.js | não evidenciado | vendas cobre reserva/consumo indiretamente | saldo insuficiente | PARCIAL |
 | Requisição de compra | test/procurement-advanced.test.js | SQLite | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | estados/permissões parciais | PARCIAL |
 | Cotação de fornecedor | test/procurement-advanced.test.js | histórico de preço | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | estados parciais | PARCIAL |
@@ -20,9 +20,9 @@ Critério: uma funcionalidade só é considerada verticalmente coberta quando ex
 | Pedido de compra | test/procurement.test.js | SQLite | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | permissão/estado | PARCIAL |
 | Recebimento parcial/excedente | test/procurement.test.js + procurement-advanced | estoque+financeiro atômicos | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | tolerância/rollback/idempotência | COBERTO |
 | Devolução de compra/crédito fornecedor | test/procurement-advanced.test.js | estoque+financeiro | procurement API | Compras | qa/e2e/procurement.test.js | receipt inexistente + limites | COBERTO |
-| Orçamento de venda: criar/editar | test/sales-admin.test.js | SQLite | test/sales-admin-api-operational.test.js | Vendas | qa/e2e/sales-admin.test.js (criar) | permissão | PARCIAL |
+| Orçamento de venda: criar/editar | test/sales-admin.test.js | SQLite | test/sales-admin-api-operational.test.js | Vendas | qa/e2e/sales-admin.test.js | permissão | COBERTO |
 | Confirmar pedido/reservar estoque | test/sales-admin.test.js | reserva persistida | sales API | Vendas | qa/e2e/sales-admin.test.js | estoque/permissão | COBERTO |
-| Faturamento parcial/total | test/sales-admin.test.js | estoque+recebível atômicos | sales API | Vendas | qa/e2e/sales-admin.test.js (parcial) | rollback/idempotência | PARCIAL |
+| Faturamento parcial/total | test/sales-admin.test.js | estoque+recebível atômicos | sales API | Vendas | qa/e2e/sales-admin.test.js | rollback/idempotência | COBERTO |
 | Cancelar saldo de pedido | test/sales-admin.test.js | libera reserva | sales API | Vendas | qa/e2e/sales-admin.test.js | motivo/estado | COBERTO |
 | Conta financeira | test/finance-base.test.js | SQLite | finance API | Financeiro | qa/e2e/finance.test.js (criar) | ciclo ativo não E2E | PARCIAL |
 | Lançamento pagar/receber | test/finance-base.test.js | SQLite | finance API | Financeiro | qa/e2e/finance.test.js (pagar) | validações/cancelamento | PARCIAL |
