@@ -14,7 +14,7 @@
     "boundary:check": "node scripts/check-erp-boundaries.js",
     "electron:compat": "node scripts/check-electron-renderer-compat.js",
     "verify": "npm run boundary:check && npm run electron:compat && npm run lint && npm test",
-    "e2e": "node --test qa/e2e/*.test.js",
+    "e2e": "node --test --test-concurrency=1 qa/e2e/*.test.js",
     "e2e:smoke": "node --test qa/e2e/smoke.test.js",
     "qa:quick": "node qa/runtime/erp-qa.mjs quick --config qa/artisys-qa.config.json",
     "qa:full": "node qa/runtime/erp-qa.mjs full --config qa/artisys-qa.config.json",
