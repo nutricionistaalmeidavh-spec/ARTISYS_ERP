@@ -5,13 +5,17 @@ const { tmpdir } = require('node:os');
 const { join, resolve } = require('node:path');
 
 async function launchErpElectron() {
+  const { existsSync } = require('node:fs');
+  const { execFileSync } = require('node:child_process');
+  const root = resolve(__dirname, '..', '..', '..');
+  if (!existsSync(join(root, 'frontend', 'dist', 'index.html'))) execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'frontend:build'], { cwd: root, stdio: 'inherit' });
   const dir = mkdtempSync(join(tmpdir(), 'artisys-erp-e2e-'));
   const dbPath = join(dir, 'artisys-erp.sqlite');
   const ofxFixture = resolve(__dirname, 'sample.ofx');
   let app;
   try {
     app = await _electron.launch({
-      args: [resolve(__dirname, '..', '..', '..')],
+      args: [root],
       env: {
         ...process.env,
         ERP_DB_PATH: dbPath,
