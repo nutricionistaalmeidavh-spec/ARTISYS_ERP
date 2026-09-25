@@ -1,0 +1,15 @@
+'use strict';
+const test=require('node:test');const assert=require('node:assert/strict');
+const {launchErpElectron}=require('./fixtures/erp-electron');
+
+async function login(page){await page.getByTestId('login-username').fill('admin');await page.getByTestId('login-password').fill('admin123');await page.getByTestId('login-submit').click();await page.getByTestId('view-dashboard').waitFor({state:'visible'});}
+
+test('desktop master data CRUD is operational and persists without browser dialogs',async()=>{const erp=await launchErpElectron();const dialogs=[];erp.page.on('dialog',d=>{dialogs.push(d.type());d.dismiss().catch(()=>{});});try{const page=erp.page;await login(page);await page.getByTestId('nav-cadastros').click();await page.getByTestId('cadastros-root').waitFor({state:'visible'});
+await page.getByTestId('customer-new').click();await page.getByTestId('customer-form-name').fill('Cliente E2E');await page.getByTestId('customer-form-phone').fill('16999999999');await page.getByTestId('customer-form-save').click();await page.getByText('Cliente E2E',{exact:true}).waitFor();
+await page.locator('[data-testid^="customer-edit-"]').first().click();await page.getByTestId('customer-form-name').fill('Cliente Editado');await page.getByTestId('customer-form-save').click();await page.getByText('Cliente Editado',{exact:true}).waitFor();
+await page.locator('[data-testid^="customer-deactivate-"]').first().click();await page.getByTestId('confirm-accept').click();await page.getByTestId('include-inactive').check();await page.getByText('Inativo',{exact:true}).waitFor();await page.locator('[data-testid^="customer-reactivate-"]').first().click();await page.getByTestId('confirm-accept').click();await page.getByText('Ativo',{exact:true}).waitFor();
+await page.getByTestId('cadastros-tab-categories').click();await page.getByTestId('category-new').click();await page.getByTestId('category-form-name').fill('Categoria E2E');await page.getByTestId('category-form-save').click();await page.getByText('Categoria E2E',{exact:true}).waitFor();
+await page.getByTestId('cadastros-tab-products').click();await page.getByTestId('product-new').click();await page.getByTestId('product-form-sku').fill('E2E-001');await page.getByTestId('product-form-name').fill('Produto E2E');await page.getByTestId('product-form-category').selectOption({label:'Categoria E2E'});await page.getByTestId('product-form-price').fill('19,90');await page.getByTestId('product-form-save').click();await page.getByText('Produto E2E',{exact:true}).waitFor();
+await page.locator('[data-testid^="product-edit-"]').first().click();await page.getByTestId('product-form-price').fill('25,90');await page.getByTestId('product-form-save').click();await page.getByText(/25,90/).waitFor();
+await page.locator('button[data-view="estoque"]').click();await page.getByTestId('nav-cadastros').click();await page.getByTestId('cadastros-tab-products').click();await page.getByText('Produto E2E',{exact:true}).waitFor();assert.deepEqual(dialogs,[]);
+}finally{await erp.close();}});
