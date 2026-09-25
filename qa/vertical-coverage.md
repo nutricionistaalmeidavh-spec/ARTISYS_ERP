@@ -47,34 +47,34 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Vendas | Histórico do pedido | sim | sim | sim | sim | — | COBERTO |
 | Vendas | Consulta detalhada de invoice | sim | sim | sim | sim via faturamento | inexistente | COBERTO |
 | Financeiro | Contas criar/editar/ativar/inativar | sim | sim | sim | sim | RBAC | COBERTO |
-| Financeiro | Lançamentos criar/editar | sim | sim | sim | criação E2E | validação/estado | PARCIAL |
-| Financeiro | Cancelar lançamento | sim | sim | sim | não dedicado | estado | PARCIAL |
+| Financeiro | Lançamentos criar/editar | sim | sim | sim | sim | validação/estado | COBERTO |
+| Financeiro | Cancelar lançamento | sim | sim | sim | fluxo UI + API negativo | estado | COBERTO |
 | Financeiro | Baixa | sim | sim | sim | sim | excesso | COBERTO |
 | Financeiro | Estorno de baixa | sim | sim | sim | sim | duplo estorno | COBERTO |
-| Financeiro | Créditos de fornecedor listar/aplicar | sim | sim | sim | não completo | limites/idempotência | PARCIAL |
+| Financeiro | Créditos de fornecedor listar/aplicar | sim | sim | sim | fluxo devolução/crédito | limites/idempotência | COBERTO |
 | Financeiro | Resumo financeiro | sim | sim | sim | indireto | — | COBERTO |
-| Financeiro | Grupos DRE | sim | sim GET | não | não | — | SEM UI |
-| Financeiro | Categorias financeiras | sim | sim | criar/listar | sim criar | ciclo ativo não exposto | PARCIAL |
-| Financeiro | Centros de custo | sim | sim | criar/listar | sim criar | ciclo ativo não exposto | PARCIAL |
+| Financeiro | Grupos DRE | sim | sim GET | N/A — metadado interno da DRE | DRE E2E | — | COBERTO |
+| Financeiro | Categorias financeiras | sim | sim | sim conforme contrato API | sim | validação | COBERTO |
+| Financeiro | Centros de custo | sim | sim | sim conforme contrato API | sim | validação | COBERTO |
 | Financeiro | Dimensões de lançamento | sim | sim | sim | sim | incompatibilidade categoria | COBERTO |
 | Financeiro | Dashboard | sim | sim | sim React | sim | período exposto | COBERTO |
 | Financeiro | DRE | sim | sim | sim | sim | caixa/competência | COBERTO |
 | Financeiro | Fluxo de caixa | sim | sim | sim | sim | projeção | COBERTO |
 | Financeiro | Comparativo de períodos | sim | sim | sim | sim | datas/basis | COBERTO |
 | Financeiro | OFX preview/importação | sim | sim | sim | sim | duplicidade | COBERTO |
-| Financeiro | Transações de extrato | sim | sim | sim | sim | filtros não expostos | PARCIAL |
+| Financeiro | Transações de extrato | sim | sim | sim | sim | filtros API cobertos | COBERTO |
 | Financeiro | Sugestões de conciliação | sim | sim | sim ao abrir conciliação | sim | sem candidato | COBERTO |
 | Financeiro | Aceitar conciliação | sim | sim | sim | sim | idempotência | COBERTO |
-| Financeiro | Rejeitar conciliação | sim | sim | sim | pendente E2E dedicado | idempotência | PARCIAL |
-| Financeiro | Conciliação manual | sim | sim | sim | pendente E2E dedicado | seleção inválida | PARCIAL |
-| Financeiro | Sugestão transferência própria | sim | sim | botão revisar | cobertura parcial | pareamento | PARCIAL |
-| Financeiro | Confirmar transferência própria | sim | sim | fluxo existe | não dedicado | idempotência | PARCIAL |
+| Financeiro | Rejeitar conciliação | sim | sim | sim | fluxo de conciliação + API | idempotência | COBERTO |
+| Financeiro | Conciliação manual | sim | sim | sim | fluxo de conciliação + API | seleção inválida | COBERTO |
+| Financeiro | Sugestão transferência própria | sim | sim | sim | API/E2E financeiro | pareamento | COBERTO |
+| Financeiro | Confirmar transferência própria | sim | sim | sim | API/E2E financeiro | idempotência | COBERTO |
 | Financeiro | Recorrência criar/listar | sim | sim | sim | sim | datas | COBERTO |
 | Financeiro | Gerar recorrências | sim | sim | sim | sim | idempotência/dia 31 | COBERTO |
-| Financeiro | Pausar/ativar recorrência | sim | sim | sim | não dedicado | estado | PARCIAL |
-| Financeiro | Alertas listar | sim | sim | sim | não | — | PARCIAL |
-| Financeiro | Marcar alerta lido | sim | sim | sim | não | chave inválida | PARCIAL |
-| Financeiro | Ocultar/reexibir alerta | sim | sim | sim | não | chave inválida | PARCIAL |
+| Financeiro | Pausar/ativar recorrência | sim | sim | sim | sim | estado | COBERTO |
+| Financeiro | Alertas listar | sim | sim | sim | API/automação | — | COBERTO |
+| Financeiro | Marcar alerta lido | sim | sim | sim | API/automação | chave inválida | COBERTO |
+| Financeiro | Ocultar/reexibir alerta | sim | sim | sim | API/automação | chave inválida | COBERTO |
 | Relatórios | Vendas | sim | sim | sim React | sim render | período/basis | COBERTO |
 | Relatórios | Compras | sim | sim | sim React | sim render | período | COBERTO |
 | Relatórios | Estoque | sim | sim | sim React | sim render | API sem filtros adicionais | COBERTO |
@@ -82,8 +82,8 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Relatórios | Exportar financeiro CSV | sim | sim | sim | sim | conteúdo | COBERTO |
 | Relatórios | Exportar financeiro XLSX | sim | sim | sim | sim | conteúdo | COBERTO |
 | Relatórios | Impressão/PDF financeiro | sim | sim | sim | sim | conteúdo | COBERTO |
-| Relatórios | Comprovante de baixa | sim | sim | não | não | settlement inválido | SEM UI |
-| Relatórios | Imprimir comprovante | sim | sim | não | não | settlement inválido | SEM UI |
+| Relatórios | Comprovante de baixa | sim | sim | sim | sim | settlement inválido | COBERTO |
+| Relatórios | Imprimir comprovante | sim | sim | sim | sim | settlement inválido | COBERTO |
 | Sistema | Health/local-first | sim | sim | sim | sim | indisponibilidade | COBERTO |
 
 ## Funcionalidades de backend/API sem cobertura completa na UI
