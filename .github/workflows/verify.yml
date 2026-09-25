@@ -16,4 +16,4 @@ jobs:
       - run: npm install --ignore-scripts
       - run: npm run verify
       - run: npm rebuild electron
-      - run: xvfb-run -a npm run e2e:smoke
+      - run: xvfb-run -a npm run e2e
