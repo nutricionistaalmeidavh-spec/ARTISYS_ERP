@@ -17,3 +17,6 @@ test('navigation does not trigger browser dialogs',async()=>{const erp=await lau
 
 
 test('financial reports and CSV XLSX print exports are reachable from UI',async()=>{const erp=await launchErpElectron();try{await login(erp);const p=erp.page;await p.locator('button[data-view="relatorios"]').click();await p.getByTestId('report-financial-load').click();await p.getByTestId('report-financial-result').waitFor();for(const id of ['report-financial-csv','report-financial-xlsx','report-financial-print']){await p.getByTestId(id).click();await p.getByTestId('report-export-result').waitFor();assert.ok((await p.getByTestId('report-export-result').innerText()).length>4);}}finally{await erp.close();}});
+
+
+test('dashboard and report filters are usable from UI',async()=>{const erp=await launchErpElectron();try{await login(erp);const p=erp.page;await p.getByTestId('dashboard-from').fill('2026-09-01');await p.getByTestId('dashboard-to').fill('2026-09-30');await p.getByTestId('dashboard-apply').click();await p.locator('button[data-view="relatorios"]').click();await p.getByTestId('reports-from').fill('2026-09-01');await p.getByTestId('reports-to').fill('2026-09-30');await p.getByTestId('reports-basis').selectOption('cash');await p.getByTestId('reports-apply').click();assert.equal(await p.locator('.report-grid pre').count(),3);}finally{await erp.close();}});
