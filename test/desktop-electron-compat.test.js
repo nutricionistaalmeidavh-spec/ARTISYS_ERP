@@ -20,8 +20,8 @@ test('Electron renderer compatibility checker rejects web dialogs and Node globa
   }
 });
 
-test('Electron renderer compatibility checker accepts normal DOM code', () => {
+test('Electron renderer compatibility checker accepts normal DOM and app-owned confirmation code', () => {
   const { checkSource } = require('../scripts/check-electron-renderer-compat');
-  const source = "document.querySelector('#save').addEventListener('click', () => console.log('ok'));";
+  const source = "document.querySelector('#save').addEventListener('click', () => window.ErpUi.confirm({title:'Salvar'}));";
   assert.deepEqual(checkSource(source, 'fixture.js'), []);
 });
