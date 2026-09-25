@@ -21,7 +21,7 @@
     "release:check": "npm run verify && node scripts/check-licenses.js && node scripts/check-customer-capabilities.js && npm run qa:release",
     "dist:win": "electron-builder --win nsis --x64 --publish never"
   },
-  "dependencies": {"@artisys/eventbus":"file:vendor/artisys-eventbus","@artisys/finance-domain":"file:vendor/artisys-finance-domain"},
+  "dependencies": {"@artisys/eventbus":"file:vendor/artisys-eventbus","@artisys/finance-domain":"file:vendor/artisys-finance-domain","pdfjs-dist":"^6.3.289"},
   "devDependencies": {"electron":"^39.8.10","electron-builder":"^26.0.12","playwright":"1.63.0"},
   "build": {
     "appId":"com.artisys.erp","productName":"ArtiSys ERP","asar":true,"directories":{"output":"dist"},
