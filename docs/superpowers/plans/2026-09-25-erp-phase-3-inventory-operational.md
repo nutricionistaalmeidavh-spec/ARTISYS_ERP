@@ -113,13 +113,13 @@ return withTransaction(db, () => {
   const qty = positiveQuantity(input.quantity, 'Quantidade');
   inventory.move({ productId, locationId: from, delta: -qty, sourceType:'inventory-transfer', sourceId:id }, actor);
   inventory.move({ productId, locationId: to, delta: qty, sourceType:'inventory-transfer', sourceId:id }, actor);
-  insertOperation(...);
+  insertOperation({id,idempotencyKey:input.idempotencyKey,type:'TRANSFER',productId,fromLocationId:from,toLocationId:to,quantity:qty,reason:input.reason,actor});
   events.outbox.insert(events.create('inventory.stock.changed','inventory-operation',id,{productId,fromLocationId:from,toLocationId:to,quantity:qty},actor,input.idempotencyKey));
   return getOperation(id);
 });
 ```
 
-The outbox insert is inside the same transaction. Dispatch only after the outer service returns successfully; expose a small `dispatchBestEffort()` helper in runtime or router layer that logs failures without undoing committed business data.
+The outbox insert is inside the same transaction. Dispatch only after the outer service returns successfully; expose a concrete `runtime.events.dispatchPending()` call from the request boundary after a successful mutation. Dispatcher failures are logged and retried later; they never undo committed business data.
 
 - [ ] **Step 4: Implement adjustment and reversal as new movements**
 
@@ -138,13 +138,15 @@ git commit -m "feat: add atomic inventory adjustments and transfers"
 ### Task 3: Completar API operacional de estoque
 
 **Files:**
+- Modify: `js/domains/inventory/inventory-service.js`
 - Modify: `server/routers/inventory-router.js`
 - Test: `test/api-contract.test.js`
 - Test: `test/inventory-operations.test.js`
 
 **Interfaces:**
 - Produces:
-  - `GET /api/v1/inventory/balances?productId=&locationId=`
+  - `inventory.listBalances({productId,locationId}) -> [{productId,locationId,balance}]`
+  - `GET /api/v1/inventory/balances?productId=&locationId=` returning `{productId,locationId,balance,reserved,available}` rows
   - `GET /api/v1/inventory/operations`
   - `POST /api/v1/inventory/adjustments`
   - `POST /api/v1/inventory/transfers`
@@ -161,28 +163,42 @@ Authenticate as manager and test an adjustment, transfer, retry by same key, lis
 Run: `node --test test/api-contract.test.js`
 Expected: FAIL on new routes.
 
-- [ ] **Step 3: Add routes using domain services only**
-
-Do not write SQL directly for mutation endpoints. Read-only balance aggregation may query through a new domain method `listBalances` rather than router SQL.
-
-Add to `inventory-service.js`:
+- [ ] **Step 3: Add physical balance aggregation to the inventory domain**
 
 ```js
-function listBalances({ productId=null, locationId=null }={}) {
-  const rows = db.prepare(`SELECT product_id productId,location_id locationId,COALESCE(SUM(delta_qty),0) balance FROM inventory_movements GROUP BY product_id,location_id`).all();
-  return rows.filter(...).map(r => ({ ...r, balance:Number(r.balance), available: logisticsProvider(r.productId,r.locationId) }));
+function listBalances({ productId = null, locationId = null } = {}) {
+  const clauses = [], params = [];
+  if (productId) { clauses.push('product_id=?'); params.push(String(productId)); }
+  if (locationId) { clauses.push('location_id=?'); params.push(String(locationId)); }
+  return db.prepare(`SELECT product_id productId,location_id locationId,COALESCE(SUM(delta_qty),0) balance FROM inventory_movements${clauses.length ? ` WHERE ${clauses.join(' AND ')}` : ''} GROUP BY product_id,location_id ORDER BY product_id,location_id`)
+    .all(...params)
+    .map(row => ({ ...row, balance: Number(row.balance) }));
 }
 ```
 
-Prefer injecting a balance presenter/helper rather than creating circular dependency from inventory to logistics.
+Export `listBalances` from `inventory-service.js`.
 
-- [ ] **Step 4: Run GREEN and commit**
+- [ ] **Step 4: Add routes using domain services only**
+
+For `GET /balances`, combine services at the request boundary without circular domain dependencies:
+
+```js
+const rows = runtime.inventory.listBalances({productId:url.searchParams.get('productId'),locationId:url.searchParams.get('locationId')});
+json(res,200,rows.map(row => {
+  const available = runtime.inventoryLogistics.getAvailable(row.productId,row.locationId);
+  return {...row,reserved:row.balance-available,available};
+}));
+```
+
+Mutation endpoints call `runtime.inventoryOperations`; reservation list calls `runtime.inventoryLogistics.listReservations`.
+
+- [ ] **Step 5: Run GREEN and commit**
 
 Run: `node --test test/api-contract.test.js test/inventory-operations.test.js`
 Expected: PASS.
 
 ```bash
-git add server/routers/inventory-router.js js/domains/inventory test/api-contract.test.js
+git add server/routers/inventory-router.js js/domains/inventory/inventory-service.js test/api-contract.test.js
 git commit -m "feat: expose operational inventory API"
 ```
 
