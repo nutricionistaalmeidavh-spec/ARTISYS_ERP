@@ -30,3 +30,13 @@ test('import bridge constrains local OFX input',()=>{
   assert.match(bridge,/max/i);
   assert.match(bridge,/sender/i);
 });
+
+test('desktop loads reusable modal form and toast primitives before app',()=>{
+  const html=read('desktop/renderer/index.html');
+  assert.match(html,/id="modal-root"/);
+  assert.match(html,/id="toast-root"/);
+  const ui=html.indexOf('src="ui.js"'),forms=html.indexOf('src="forms.js"'),app=html.indexOf('src="app.js"');
+  assert.ok(ui>=0&&forms>=0&&ui<app&&forms<app);
+  assert.match(read('desktop/renderer/ui.js'),/window\.ErpUi/);
+  assert.match(read('desktop/renderer/forms.js'),/window\.ErpForms/);
+});

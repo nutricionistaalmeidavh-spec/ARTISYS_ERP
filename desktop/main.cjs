@@ -6,8 +6,9 @@ const {createLocalServer}=require('../server/local-server');
 const {registerImportBridge}=require('./import-bridge.cjs');
 let runtime=null;let localServer=null;let baseUrl=null;let mainWindow=null;
 async function boot(){
-  const dbPath=path.join(app.getPath('userData'),'data','artisys-erp.sqlite');
+  const dbPath=process.env.ERP_DB_PATH?path.resolve(process.env.ERP_DB_PATH):path.join(app.getPath('userData'),'data','artisys-erp.sqlite');
   runtime=createErpRuntime({dbPath});
+  if(process.env.ERP_E2E==='1'&&runtime.auth.countUsers()===0){runtime.auth.createUser({username:process.env.ERP_E2E_USERNAME||'admin',name:'E2E Admin',role:'admin',password:process.env.ERP_E2E_PASSWORD||'admin123'});}
   localServer=createLocalServer({runtime,host:'127.0.0.1',port:0});
   const address=await localServer.start();
   baseUrl=`http://127.0.0.1:${address.port}`;

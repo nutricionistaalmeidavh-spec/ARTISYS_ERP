@@ -3,6 +3,7 @@ name: ERP Windows Build
 on:
   push:
     branches: [feat/erp-standalone]
+  pull_request:
   workflow_dispatch:
 
 jobs:
