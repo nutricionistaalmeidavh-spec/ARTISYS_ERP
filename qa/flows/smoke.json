@@ -1,0 +1,1 @@
+{"id":"smoke","kind":"node-test-flow","testFiles":["test/desktop-identity.test.js","test/erp-runtime.test.js"],"assertions":["standalone ERP contract","local-first behavior"]}
