@@ -1,0 +1,4 @@
+'use strict';
+function sanitize(value){if(Array.isArray(value))return value.map(sanitize);if(!value||typeof value!=='object')return value;const out={};for(const [key,val] of Object.entries(value)){if(/password|hash|token|secret|authorization/i.test(key))continue;out[key]=sanitize(val);}return out;}
+function writeAudit(db,event={},now=()=>new Date().toISOString()){if(!db)throw new TypeError('Database is required.');const actor=event.actor||null;const context=event.context===undefined?null:sanitize(event.context);db.prepare('INSERT INTO audit_log(action,entity,entity_id,actor_user_id,actor_role,context_json,created_at) VALUES(?,?,?,?,?,?,?)').run(String(event.action||''),String(event.entity||''),event.entityId==null?null:String(event.entityId),actor?.userId==null?null:String(actor.userId),actor?.role==null?null:String(actor.role),context==null?null:JSON.stringify(context),String(now()));}
+module.exports={writeAudit,sanitize};
