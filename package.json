@@ -15,6 +15,7 @@
     "qa:quick": "node qa/runtime/erp-qa.mjs quick --config qa/artisys-qa.config.json",
     "qa:full": "node qa/runtime/erp-qa.mjs full --config qa/artisys-qa.config.json",
     "qa:release": "node qa/runtime/erp-qa.mjs release --config qa/artisys-qa.config.json",
+    "release:check": "npm run verify && node scripts/check-licenses.js && node scripts/check-customer-capabilities.js && npm run qa:release",
     "dist:win": "electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {"@artisys/finance-domain":"file:vendor/artisys-finance-domain"},
