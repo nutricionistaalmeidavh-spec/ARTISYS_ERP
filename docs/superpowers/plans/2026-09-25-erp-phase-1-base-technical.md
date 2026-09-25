@@ -6,7 +6,7 @@
 
 **Architecture:** O ERP continua SQLite/local-first. `@artisys/eventbus` 0.2.0 será vendorizado e inicializado no `createErpRuntime()`. Mutações críticas permanecem na mesma transação SQLite; eventos entram na outbox na mesma transação e são despachados somente depois do commit. O renderer continua isolado de Node por preload e ganha um gate que proíbe diálogos web incompatíveis.
 
-**Tech Stack:** Node.js 22+, CommonJS, SQLite, Electron 39, Playwright 1.63, `node:test`, `@artisys/eventbus` 0.2.0 vendorizado.
+**Tech Stack:** Node.js 22+, CommonJS, SQLite, Electron 39, Playwright 1.63, `@playwright/test` 1.63, `node:test`, `@artisys/eventbus` 0.2.0 vendorizado.
 
 **Spec:** `docs/superpowers/specs/2026-09-25-artisys-erp-operational-core-design.md`
 
@@ -18,16 +18,16 @@
 - SQLite é a fonte de verdade.
 - `prompt()`, `window.prompt()`, `alert()`, `window.alert()`, `confirm()` e `window.confirm()` são proibidos no renderer.
 - Nenhum Kafka, RabbitMQ, Redis, SaaS ou broker externo.
-- Operações críticas de estoque/financeiro não podem depender de subscribers assíncronos para consistência.
+- Operações críticas de estoque/financeiro não podem depender de subscribers para consistência.
 - Cada tarefa termina com testes verdes e commit próprio.
 
 ## Review Focus
 
-1. Evento gravado dentro de transação que sofre rollback não pode sobreviver na outbox — cobrir em `test/eventbus-runtime.test.js`.
-2. Falha de subscriber não pode marcar evento como despachado — cobrir em `test/eventbus-runtime.test.js`.
-3. Reinício do runtime deve encontrar e despachar evento pendente uma única vez — cobrir em `test/eventbus-runtime.test.js`.
-4. Renderer contendo qualquer diálogo web proibido deve fazer `npm run verify` falhar — cobrir em `test/desktop-electron-compat.test.js`.
-5. E2E deve usar banco temporário isolado e fechar Electron/servidor mesmo após falha — cobrir no helper `qa/e2e/fixtures/erp-electron.js`.
+1. Evento gravado dentro de transação que sofre rollback não pode sobreviver na outbox — `test/eventbus-runtime.test.js`.
+2. Falha de subscriber não pode marcar evento como despachado — `test/eventbus-runtime.test.js`.
+3. Reinício do runtime deve encontrar e despachar evento pendente uma única vez — `test/eventbus-runtime.test.js`.
+4. Renderer contendo diálogo web proibido deve fazer `npm run verify` falhar — `test/desktop-electron-compat.test.js`.
+5. E2E usa banco temporário isolado, usuário bootstrap próprio e cleanup mesmo após falha — `qa/e2e/fixtures/erp-electron.js`.
 
 ---
 
@@ -51,33 +51,28 @@
 - Test: `test/eventbus-vendor.test.js`
 
 **Interfaces:**
-- Consumes: source `nutricionistaalmeidavh-spec/utilidades/modules/artisys-eventbus` version `0.2.0`.
-- Produces: dependency `@artisys/eventbus: file:vendor/artisys-eventbus` exporting `createDomainEvent`, `DomainEventBus`, `DomainEventDispatcher`, `SqliteOutboxStore`, `SqliteEffectStore`, `IdempotentEffectRunner`, `SQLITE_SCHEMA`.
+- Consumes source `nutricionistaalmeidavh-spec/utilidades/modules/artisys-eventbus` version `0.2.0`.
+- Produces dependency `@artisys/eventbus: file:vendor/artisys-eventbus` exporting `createDomainEvent`, `DomainEventBus`, `DomainEventDispatcher`, `SqliteOutboxStore`, `SqliteEffectStore`, `IdempotentEffectRunner`, `SQLITE_SCHEMA`.
 
-- [ ] **Step 1: Write the failing package contract test**
+- [ ] **Step 1: Write failing package contract**
 
 ```js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-
-test('vendored eventbus exposes the desktop contract', () => {
-  const eventbus = require('../vendor/artisys-eventbus/src');
-  for (const key of ['createDomainEvent','DomainEventBus','DomainEventDispatcher','SqliteOutboxStore','SqliteEffectStore','IdempotentEffectRunner','SQLITE_SCHEMA']) {
-    assert.ok(eventbus[key], `missing ${key}`);
-  }
+test('vendored eventbus exposes desktop contract', () => {
+  const bus = require('../vendor/artisys-eventbus/src');
+  for (const key of ['createDomainEvent','DomainEventBus','DomainEventDispatcher','SqliteOutboxStore','SqliteEffectStore','IdempotentEffectRunner','SQLITE_SCHEMA']) assert.ok(bus[key], key);
 });
 ```
 
 - [ ] **Step 2: Run RED**
 
 Run: `node --test test/eventbus-vendor.test.js`
-Expected: FAIL because `vendor/artisys-eventbus` does not exist.
+Expected: FAIL because vendor module is absent.
 
-- [ ] **Step 3: Copy only the Node/Electron core files from the approved module and pin provenance**
+- [ ] **Step 3: Copy the Node/Electron core only and pin provenance**
 
-`PROVENANCE.md` must state source repo, source path, version `0.2.0`, source commit used, license, and that web/D1 adapters were intentionally excluded from the desktop core package.
-
-Update `package.json`:
+`PROVENANCE.md` records source repo/path, version `0.2.0`, exact source commit, license, and excluded web/D1 adapters. Update `package.json`:
 
 ```json
 "dependencies": {
@@ -100,7 +95,7 @@ git add vendor/artisys-eventbus package.json package-lock.json test/eventbus-ven
 git commit -m "feat: vendor ArtiSys EventBus for ERP"
 ```
 
-### Task 2: Persistir outbox/effects nas migrations do ERP
+### Task 2: Persistir outbox/effects nas migrations
 
 **Files:**
 - Create: `js/core/database/migrations/060-eventbus.js`
@@ -108,54 +103,45 @@ git commit -m "feat: vendor ArtiSys EventBus for ERP"
 - Test: `test/eventbus-runtime.test.js`
 
 **Interfaces:**
-- Consumes: `SQLITE_SCHEMA` from `@artisys/eventbus`.
-- Produces: tables `domain_events` and `domain_effects` available in every ERP database after migration.
+- Consumes `SQLITE_SCHEMA` from `@artisys/eventbus`.
+- Produces `domain_events` and `domain_effects`.
 
 - [ ] **Step 1: Write failing migration test**
 
 ```js
-const { createErpRuntime } = require('../js/core/erp-runtime');
-
-test('ERP creates durable eventbus tables', () => {
-  const runtime = createErpRuntime();
-  const names = runtime.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r => r.name);
-  assert.ok(names.includes('domain_events'));
-  assert.ok(names.includes('domain_effects'));
-  runtime.close();
-});
+const runtime = createErpRuntime();
+const names = runtime.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name);
+assert.ok(names.includes('domain_events'));
+assert.ok(names.includes('domain_effects'));
+runtime.close();
 ```
 
 - [ ] **Step 2: Run RED**
 
 Run: `node --test test/eventbus-runtime.test.js`
-Expected: FAIL because the tables are absent.
+Expected: FAIL.
 
-- [ ] **Step 3: Add migration 060**
+- [ ] **Step 3: Add migration**
 
 ```js
 'use strict';
 const { SQLITE_SCHEMA } = require('@artisys/eventbus');
-module.exports = {
-  id: '060-eventbus',
-  up(db) { db.exec(SQLITE_SCHEMA); }
-};
+module.exports = { id:'060-eventbus', up(db){ db.exec(SQLITE_SCHEMA); } };
 ```
 
-Register it after `050-finance-automation` in `migrations/index.js`.
+Register after `050-finance-automation`.
 
-- [ ] **Step 4: Run GREEN plus migration regression**
+- [ ] **Step 4: Run GREEN and commit**
 
 Run: `node --test test/eventbus-runtime.test.js test/database-foundation.test.js`
 Expected: PASS.
-
-- [ ] **Step 5: Commit**
 
 ```bash
 git add js/core/database/migrations test/eventbus-runtime.test.js
 git commit -m "feat: add durable ERP event outbox"
 ```
 
-### Task 3: Integrar EventBus ao `createErpRuntime()`
+### Task 3: Integrar EventBus ao runtime
 
 **Files:**
 - Create: `js/core/events/erp-events.js`
@@ -163,26 +149,20 @@ git commit -m "feat: add durable ERP event outbox"
 - Test: `test/eventbus-runtime.test.js`
 
 **Interfaces:**
-- Produces: `runtime.events.bus`, `runtime.events.outbox`, `runtime.events.effects`, `runtime.events.dispatcher`, `runtime.events.create(type, aggregate, aggregateId, payload, actor, mutationId)` and `runtime.events.dispatchPending()`.
+- Produces `runtime.events.bus`, `.outbox`, `.effects`, `.dispatcher`, `.create(...)`, `.dispatchPending()`.
 
-- [ ] **Step 1: Extend failing runtime test**
+- [ ] **Step 1: Write failing runtime/retry test**
 
 ```js
-test('runtime exposes durable events and retries failed subscribers', async () => {
-  const runtime = createErpRuntime();
-  assert.equal(typeof runtime.events.create, 'function');
-  assert.equal(typeof runtime.events.dispatchPending, 'function');
-  let calls = 0;
-  runtime.events.bus.subscribe('test.event', () => { calls += 1; if (calls === 1) throw new Error('boom'); });
-  const event = runtime.events.create('test.event', 'test', '1', { ok: true }, { id: 'u1' });
-  runtime.events.outbox.insert(event);
-  const first = await runtime.events.dispatchPending();
-  assert.equal(first.failed, 1);
-  const second = await runtime.events.dispatchPending();
-  assert.equal(second.dispatched, 1);
-  assert.equal(calls, 2);
-  runtime.close();
-});
+const runtime = createErpRuntime();
+let calls = 0;
+runtime.events.bus.subscribe('test.event',()=>{ calls += 1; if (calls === 1) throw new Error('boom'); });
+const event = runtime.events.create('test.event','test','1',{ok:true},{id:'u1'});
+runtime.events.outbox.insert(event);
+assert.equal((await runtime.events.dispatchPending()).failed,1);
+assert.equal((await runtime.events.dispatchPending()).dispatched,1);
+assert.equal(calls,2);
+runtime.close();
 ```
 
 - [ ] **Step 2: Run RED**
@@ -190,46 +170,43 @@ test('runtime exposes durable events and retries failed subscribers', async () =
 Run: `node --test test/eventbus-runtime.test.js`
 Expected: FAIL because `runtime.events` is undefined.
 
-- [ ] **Step 3: Implement focused event runtime**
+- [ ] **Step 3: Implement `createErpEvents`**
 
 ```js
 const { randomUUID } = require('node:crypto');
-const { createDomainEvent, DomainEventBus, DomainEventDispatcher, SqliteOutboxStore, SqliteEffectStore } = require('@artisys/eventbus');
-
-function createErpEvents({ db, now }) {
+const { createDomainEvent,DomainEventBus,DomainEventDispatcher,SqliteOutboxStore,SqliteEffectStore } = require('@artisys/eventbus');
+function createErpEvents({db,now}) {
   const bus = new DomainEventBus();
   const outbox = new SqliteOutboxStore(db);
   const effects = new SqliteEffectStore(db);
-  const dispatcher = new DomainEventDispatcher({ bus, outbox });
+  const dispatcher = new DomainEventDispatcher({bus,outbox});
   return {
-    bus, outbox, effects, dispatcher,
-    create(type, aggregate, aggregateId, payload = {}, actor = {}, mutationId = null) {
-      return createDomainEvent({ eventId: randomUUID(), type, aggregate, aggregateId, mutationId, source: 'artisys-erp', actor: actor || {}, payload, occurredAt: now() });
+    bus,outbox,effects,dispatcher,
+    create(type,aggregate,aggregateId,payload={},actor={},mutationId=null) {
+      return createDomainEvent({eventId:randomUUID(),type,aggregate,aggregateId,mutationId,source:'artisys-erp',actor:actor||{},payload,occurredAt:now()});
     },
-    dispatchPending: () => dispatcher.dispatchPending()
+    dispatchPending:()=>dispatcher.dispatchPending()
   };
 }
 ```
 
-Initialize `events` after migrations and pass it only to domains that need it in later phases.
+Initialize after migrations.
 
-- [ ] **Step 4: Add rollback durability test**
+- [ ] **Step 4: Add rollback/restart tests**
 
-Insert an event inside `withTransaction(db, () => { outbox.insert(event); throw new Error('rollback'); })`, then assert `domain_events` contains zero rows.
+Insert an outbox event inside `withTransaction` then throw; assert zero rows. For restart, use temporary file DB, insert pending event, close runtime, reopen same DB, subscribe and dispatch; assert exactly one dispatch and a second dispatch attempts zero.
 
-- [ ] **Step 5: Run GREEN**
+- [ ] **Step 5: Run GREEN and commit**
 
 Run: `node --test test/eventbus-runtime.test.js test/erp-runtime.test.js`
 Expected: PASS.
-
-- [ ] **Step 6: Commit**
 
 ```bash
 git add js/core/events js/core/erp-runtime.js test/eventbus-runtime.test.js
 git commit -m "feat: wire EventBus into ERP runtime"
 ```
 
-### Task 4: Bloquear APIs incompatíveis no renderer
+### Task 4: Gate de compatibilidade Electron
 
 **Files:**
 - Create: `scripts/check-electron-renderer-compat.js`
@@ -237,20 +214,18 @@ git commit -m "feat: wire EventBus into ERP runtime"
 - Test: `test/desktop-electron-compat.test.js`
 
 **Interfaces:**
-- Produces: `npm run electron:compat` and inclusion in `npm run verify`.
+- Produces `npm run electron:compat`, included in `npm run verify`.
 
 - [ ] **Step 1: Write failing checker tests**
 
-Create temporary renderer fixtures and assert the checker rejects `prompt('x')`, `window.alert('x')`, `confirm('x')` and `require('fs')`, while accepting normal DOM APIs.
+Fixtures must prove rejection of `prompt('x')`, `window.alert('x')`, `confirm('x')`, `require('fs')`, `process.cwd()` and acceptance of normal DOM code.
 
 - [ ] **Step 2: Run RED**
 
 Run: `node --test test/desktop-electron-compat.test.js`
-Expected: FAIL because checker is absent.
+Expected: FAIL.
 
-- [ ] **Step 3: Implement AST-free deterministic scanner**
-
-The script must recursively scan `desktop/renderer/**/*.js` and fail on these explicit patterns:
+- [ ] **Step 3: Implement deterministic scanner**
 
 ```js
 const forbidden = [
@@ -264,129 +239,129 @@ const forbidden = [
 ];
 ```
 
-Skip comments only if the implementation can do so deterministically; otherwise document that source comments must not contain executable examples of forbidden calls.
-
-Update scripts:
+Recursively scan `desktop/renderer/**/*.js`. Update:
 
 ```json
-"electron:compat": "node scripts/check-electron-renderer-compat.js",
-"verify": "npm run boundary:check && npm run electron:compat && npm run lint && npm test"
+"electron:compat":"node scripts/check-electron-renderer-compat.js",
+"verify":"npm run boundary:check && npm run electron:compat && npm run lint && npm test"
 ```
 
-- [ ] **Step 4: Run GREEN**
+- [ ] **Step 4: Run GREEN and commit**
 
 Run: `npm run electron:compat && node --test test/desktop-electron-compat.test.js`
 Expected: PASS.
-
-- [ ] **Step 5: Commit**
 
 ```bash
 git add scripts/check-electron-renderer-compat.js package.json test/desktop-electron-compat.test.js
 git commit -m "test: enforce Electron renderer compatibility"
 ```
 
-### Task 5: Criar harness E2E Electron + Playwright
+### Task 5: Harness E2E Electron + Playwright
 
 **Files:**
+- Modify: `package.json`
+- Modify: `desktop/main.cjs`
+- Modify: `desktop/renderer/index.html`
+- Modify: `desktop/renderer/app.js`
 - Create: `qa/e2e/fixtures/erp-electron.js`
 - Create: `qa/e2e/smoke.spec.js`
-- Modify: `package.json`
 - Modify: `.gitignore`
 
 **Interfaces:**
-- Produces: `launchErpElectron()` returning `{ app, page, dbPath, close }` and scripts `e2e` / `e2e:smoke`.
+- Produces `launchErpElectron() -> {app,page,dbPath,close}` and scripts `e2e`, `e2e:smoke`.
 
-- [ ] **Step 1: Write smoke E2E**
+- [ ] **Step 1: Add Playwright test runner as dev-only dependency**
+
+Update `devDependencies` keeping versions aligned:
+
+```json
+"@playwright/test":"1.63.0",
+"playwright":"1.63.0"
+```
+
+Run: `npm install`
+Expected: lockfile updated; no runtime dependency added.
+
+- [ ] **Step 2: Write failing smoke E2E**
 
 ```js
 const { test, expect } = require('@playwright/test');
 const { launchErpElectron } = require('./fixtures/erp-electron');
-
 test('opens ERP, logs in and shows dashboard without web dialogs', async () => {
   const erp = await launchErpElectron();
-  const dialogs = [];
-  erp.page.on('dialog', d => dialogs.push(d.type()));
-  await erp.page.getByTestId('login-email').fill('admin@artisys.local');
-  await erp.page.getByTestId('login-password').fill('admin');
-  await erp.page.getByTestId('login-submit').click();
-  await expect(erp.page.getByTestId('view-dashboard')).toBeVisible();
-  expect(dialogs).toEqual([]);
-  await erp.close();
+  try {
+    const dialogs=[];
+    erp.page.on('dialog',d=>dialogs.push(d.type()));
+    await erp.page.getByTestId('login-email').fill('admin@artisys.local');
+    await erp.page.getByTestId('login-password').fill('admin');
+    await erp.page.getByTestId('login-submit').click();
+    await expect(erp.page.getByTestId('view-dashboard')).toBeVisible();
+    expect(dialogs).toEqual([]);
+  } finally { await erp.close(); }
 });
 ```
 
-- [ ] **Step 2: Run RED**
+- [ ] **Step 3: Run RED**
 
 Run: `npx playwright test qa/e2e/smoke.spec.js --reporter=line`
-Expected: FAIL because fixture/test ids are absent.
+Expected: FAIL because fixture/test ids/env override are absent.
 
-- [ ] **Step 3: Implement isolated Electron fixture**
+- [ ] **Step 4: Make desktop DB path injectable for tests**
 
-Use Playwright `_electron.launch` with a temporary directory and env vars:
+In `desktop/main.cjs`:
+
+```js
+const dbPath = process.env.ERP_DB_PATH
+  ? path.resolve(process.env.ERP_DB_PATH)
+  : path.join(app.getPath('userData'),'data','artisys-erp.sqlite');
+```
+
+Production behavior is unchanged when `ERP_DB_PATH` is absent.
+
+- [ ] **Step 5: Implement isolated fixture and bootstrap admin**
 
 ```js
 const { _electron } = require('playwright');
-const { mkdtempSync, rmSync } = require('node:fs');
+const { createErpRuntime } = require('../../../js/core/erp-runtime');
+const { mkdtempSync,rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
-
 async function launchErpElectron() {
-  const dir = mkdtempSync(join(tmpdir(), 'artisys-erp-e2e-'));
-  const dbPath = join(dir, 'erp.sqlite');
-  const app = await _electron.launch({ args: ['.'], env: { ...process.env, ERP_DB_PATH: dbPath, ERP_E2E: '1' } });
-  const page = await app.firstWindow();
-  return { app, page, dbPath, async close() { await app.close(); rmSync(dir, { recursive: true, force: true }); } };
+  const dir=mkdtempSync(join(tmpdir(),'artisys-erp-e2e-'));
+  const dbPath=join(dir,'erp.sqlite');
+  const seed=createErpRuntime({dbPath});
+  seed.auth.createUser({username:'admin@artisys.local',name:'E2E Admin',role:'admin',password:'admin'});
+  seed.close();
+  const app=await _electron.launch({args:['.'],env:{...process.env,ERP_DB_PATH:dbPath}});
+  const page=await app.firstWindow();
+  return {app,page,dbPath,async close(){await app.close();rmSync(dir,{recursive:true,force:true});}};
 }
+module.exports={launchErpElectron};
 ```
 
-Use `try/finally` in every spec or a Playwright fixture wrapper so cleanup also occurs after assertion failure.
+- [ ] **Step 6: Add stable login/dashboard test ids and scripts**
 
-- [ ] **Step 4: Add stable test ids to existing login/dashboard controls**
-
-Modify renderer HTML/JS only enough to expose `login-email`, `login-password`, `login-submit`, `view-dashboard`; do not redesign operational screens in this phase.
-
-- [ ] **Step 5: Add scripts and run GREEN**
+Add `login-email`, `login-password`, `login-submit`, `view-dashboard`. Add:
 
 ```json
-"e2e": "playwright test qa/e2e --reporter=line",
-"e2e:smoke": "playwright test qa/e2e/smoke.spec.js --reporter=line"
+"e2e":"playwright test qa/e2e --reporter=line",
+"e2e:smoke":"playwright test qa/e2e/smoke.spec.js --reporter=line"
 ```
+
+- [ ] **Step 7: Run GREEN and commit**
 
 Run: `npm run e2e:smoke && npm run verify`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
-
 ```bash
-git add qa/e2e desktop/renderer package.json .gitignore
+git add package.json package-lock.json desktop qa/e2e .gitignore
 git commit -m "test: add real Electron Playwright smoke flow"
 ```
 
 ### Task 6: Phase 1 verification
 
-**Files:**
-- Modify only if verification exposes defects in files owned by Tasks 1–5.
-
-- [ ] **Step 1: Run all local gates**
-
-Run: `npm run verify`
-Expected: PASS.
-
-- [ ] **Step 2: Run real Electron smoke**
-
-Run: `npm run e2e:smoke`
-Expected: PASS with no dialogs.
-
-- [ ] **Step 3: Run release contract smoke**
-
-Run: `npm run release:check`
-Expected: PASS.
-
-- [ ] **Step 4: Commit verification-only fixes if any**
-
-```bash
-git status --short
-git commit -am "fix: close phase 1 verification gaps"
-```
-
-Do not create an empty commit.
+- [ ] `npm run verify` — PASS.
+- [ ] `npm run e2e:smoke` — PASS with zero web dialogs.
+- [ ] `npm run release:check` — PASS.
+- [ ] Run the restart/outbox test separately once more — PASS.
+- [ ] Commit only concrete verification fixes; do not create an empty commit.
