@@ -32,6 +32,7 @@ function createProcurementRouter({runtime,sessions,bodyLimitBytes=1024*1024}={})
   }
   if((m=pathMatch(url.pathname,'/api/v1/procurement/awards/:id/submit-approval'))&&req.method==='POST'){mutate();json(res,201,runtime.procurementApprovals.submitAwardForApproval(m.id,actor));return true;}
   if((m=pathMatch(url.pathname,'/api/v1/procurement/awards/:id/generate-orders'))&&req.method==='POST'){mutate();json(res,201,runtime.procurementAwards.generateOrders(m.id,actor));return true;}
+  if((m=pathMatch(url.pathname,'/api/v1/procurement/awards/:id/approval'))&&req.method==='GET'){json(res,200,runtime.procurementApprovals.latestForAward(m.id));return true;}
   if((m=pathMatch(url.pathname,'/api/v1/procurement/approvals/:id'))&&req.method==='GET'){const row=runtime.procurementApprovals.getApproval(m.id);if(!row)throw new Error('Aprovacao nao encontrada.');json(res,200,row);return true;}
   if((m=pathMatch(url.pathname,'/api/v1/procurement/approvals/:id/approve'))&&req.method==='POST'){const input=await body(req,bodyLimitBytes);json(res,200,runtime.procurementApprovals.approveLevel(m.id,input,actor));return true;}
   if((m=pathMatch(url.pathname,'/api/v1/procurement/approvals/:id/reject'))&&req.method==='POST'){const input=await body(req,bodyLimitBytes);json(res,200,runtime.procurementApprovals.rejectApproval(m.id,input,actor));return true;}
@@ -46,6 +47,7 @@ function createProcurementRouter({runtime,sessions,bodyLimitBytes=1024*1024}={})
   if((m=pathMatch(url.pathname,'/api/v1/procurement/orders/:id/receive'))&&req.method==='POST'){mutate();json(res,201,runtime.procurement.receivePurchaseOrder(m.id,await body(req,bodyLimitBytes),actor));return true;}
   if((m=pathMatch(url.pathname,'/api/v1/procurement/receipts/:id/return'))&&req.method==='POST'){mutate();json(res,201,runtime.procurementReturns.createReturn(m.id,await body(req,bodyLimitBytes),actor));return true;}
   if(url.pathname==='/api/v1/procurement/returns'&&req.method==='GET'){json(res,200,runtime.procurementReturns.listReturns({receiptId:url.searchParams.get('receiptId'),supplierId:url.searchParams.get('supplierId')}));return true;}
+  if((m=pathMatch(url.pathname,'/api/v1/procurement/returns/:id'))&&req.method==='GET'){const row=runtime.procurementReturns.getReturn(m.id);if(!row)throw new Error('Devolucao nao encontrada.');json(res,200,row);return true;}
   if(url.pathname==='/api/v1/procurement/supplier-credits'&&req.method==='GET'){json(res,200,runtime.supplierCredits.listSupplierCredits({supplierId:url.searchParams.get('supplierId'),status:url.searchParams.get('status')}));return true;}
   return false;
 }catch(error){throw asHttpError(error);}};}
