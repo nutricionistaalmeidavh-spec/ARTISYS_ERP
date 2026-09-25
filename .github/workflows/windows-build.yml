@@ -1,0 +1,24 @@
+name: ERP Windows Build
+
+on:
+  push:
+    branches: [feat/erp-standalone]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify-and-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run release:check
+      - run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ArtiSys-ERP-Windows
+          path: dist/ArtiSys-ERP-*-x64-Setup.exe
+          if-no-files-found: error

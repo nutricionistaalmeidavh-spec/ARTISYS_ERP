@@ -1,0 +1,15 @@
+'use strict';
+const {json}=require('../http-utils');const {pathMatch,requireActor,body,asHttpError}=require('../router-utils');
+function createSalesAdminRouter({runtime,sessions,bodyLimitBytes=1024*1024}={}){return async function(req,res,url){if(!url.pathname.startsWith('/api/v1/sales/'))return false;try{const actor=requireActor(req,sessions),mutate=()=>requireActor(req,sessions,['admin','manager']),p=url.pathname;let m;
+ if(p==='/api/v1/sales/quotes'){if(req.method==='GET'){json(res,200,runtime.salesAdmin.listOrders({status:'QUOTE',customerId:url.searchParams.get('customerId')}));return true;}if(req.method==='POST'){mutate();json(res,201,runtime.salesAdmin.createQuote(await body(req,bodyLimitBytes),actor));return true;}}
+ if((m=pathMatch(p,'/api/v1/sales/quotes/:id'))){const row=runtime.salesAdmin.getOrder(m.id);if(!row||row.status!=='QUOTE')throw new Error('Orcamento nao encontrado.');if(req.method==='GET'){json(res,200,row);return true;}if(req.method==='PATCH'){mutate();json(res,200,runtime.salesAdmin.updateQuote(m.id,await body(req,bodyLimitBytes),actor));return true;}}
+ if(p==='/api/v1/sales/orders'&&req.method==='GET'){json(res,200,runtime.salesAdmin.listOrders({status:url.searchParams.get('status'),customerId:url.searchParams.get('customerId')}));return true;}
+ if(p==='/api/v1/sales/invoices'&&req.method==='GET'){json(res,200,runtime.salesAdmin.listInvoices({orderId:url.searchParams.get('orderId')}));return true;}
+ if((m=pathMatch(p,'/api/v1/sales/orders/:id'))&&req.method==='GET'){const row=runtime.salesAdmin.getOrder(m.id);if(!row)throw new Error('Pedido administrativo nao encontrado.');json(res,200,row);return true;}
+ if((m=pathMatch(p,'/api/v1/sales/orders/:id/confirm'))&&req.method==='POST'){mutate();json(res,200,runtime.salesAdmin.confirmOrder(m.id,actor));return true;}
+ if((m=pathMatch(p,'/api/v1/sales/orders/:id/cancel'))&&req.method==='POST'){mutate();json(res,200,runtime.salesAdmin.cancelOrder(m.id,await body(req,bodyLimitBytes),actor));return true;}
+ if((m=pathMatch(p,'/api/v1/sales/orders/:id/invoice'))&&req.method==='POST'){mutate();json(res,201,runtime.salesAdmin.invoiceOrder(m.id,await body(req,bodyLimitBytes),actor));return true;}
+ if((m=pathMatch(p,'/api/v1/sales/orders/:id/history'))&&req.method==='GET'){json(res,200,runtime.salesAdmin.getOrderHistory(m.id));return true;}
+ if((m=pathMatch(p,'/api/v1/sales/invoices/:id'))&&req.method==='GET'){const row=runtime.salesAdmin.getInvoice(m.id);if(!row)throw new Error('Faturamento administrativo nao encontrado.');json(res,200,row);return true;}
+ return false;}catch(error){throw asHttpError(error);}};}
+module.exports={createSalesAdminRouter};

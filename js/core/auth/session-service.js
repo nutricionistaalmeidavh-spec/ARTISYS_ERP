@@ -1,0 +1,4 @@
+'use strict';
+const {randomBytes}=require('node:crypto');
+function createSessionService({now=()=>Date.now(),ttlMs=12*60*60*1000}={}){const sessions=new Map();function create(actor){if(!actor?.userId||!actor?.role)throw new Error('Actor invalido.');const token=randomBytes(32).toString('hex');sessions.set(token,{userId:String(actor.userId),role:String(actor.role),expiresAt:Number(now())+ttlMs});return token;}function resolve(token){const row=sessions.get(String(token||''));if(!row)return null;if(row.expiresAt<=Number(now())){sessions.delete(String(token));return null;}return{...row};}function revoke(token){return sessions.delete(String(token||''));}function prune(){let count=0;for(const [token,row] of sessions)if(row.expiresAt<=Number(now())){sessions.delete(token);count++;}return count;}return{create,resolve,revoke,prune};}
+module.exports={createSessionService};

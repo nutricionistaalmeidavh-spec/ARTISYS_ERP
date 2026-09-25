@@ -1,0 +1,3 @@
+'use strict';
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const os=require('node:os');const path=require('node:path');const {createErpRuntime}=require('../js/core/erp-runtime');
+test('ERP runtime creates a clean local database and closes it',()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'erp-runtime-'));const dbPath=path.join(dir,'erp.sqlite');try{const runtime=createErpRuntime({dbPath,now:()=> '2026-09-25T03:30:00.000Z'});assert.ok(fs.existsSync(dbPath));assert.ok(runtime.db);assert.ok(runtime.auth);assert.ok(runtime.settings);assert.equal(runtime.auth.countUsers(),0);runtime.close();}finally{fs.rmSync(dir,{recursive:true,force:true});}});

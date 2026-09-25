@@ -1,0 +1,1 @@
+{"name":"@artisys/finance-domain","version":"0.1.0","type":"module","exports":"./src/index.mjs","files":["src","LICENSE"],"engines":{"node":">=22"},"license":"MIT"}

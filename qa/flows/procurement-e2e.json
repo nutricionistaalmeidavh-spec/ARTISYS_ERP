@@ -1,0 +1,1 @@
+{"id":"procurement-e2e","kind":"node-test-flow","testFiles":["test/procurement.test.js"],"assertions":["purchase receipt","payable atomicity"]}

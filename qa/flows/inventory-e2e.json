@@ -1,0 +1,1 @@
+{"id":"inventory-e2e","kind":"node-test-flow","testFiles":["test/master-data-inventory.test.js"],"assertions":["stock movements","reservations"]}

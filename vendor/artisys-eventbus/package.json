@@ -1,0 +1,12 @@
+{
+  "name": "@artisys/eventbus",
+  "version": "0.2.0",
+  "description": "EventBus local-first para Node/Electron com outbox durável e efeitos idempotentes.",
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "exports": {".": "./src/index.js"},
+  "engines": {"node": ">=18"},
+  "files": ["src", "LICENSE", "PROVENANCE.md"],
+  "dependencies": {},
+  "license": "MIT"
+}

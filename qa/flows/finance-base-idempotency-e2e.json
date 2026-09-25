@@ -1,0 +1,1 @@
+{"id":"finance-base-idempotency-e2e","kind":"node-test-flow","testFiles":["test/finance-base.test.js"],"assertions":["finance idempotency"]}

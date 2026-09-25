@@ -1,0 +1,1 @@
+{"id":"finance-management-base-e2e","kind":"node-test-flow","testFiles":["test/finance-base.test.js","test/reporting-management.test.js"],"assertions":["finance foundation"]}

@@ -1,0 +1,1 @@
+{"id":"bank-transfer-e2e","kind":"node-test-flow","testFiles":["test/finance-automation.test.js"],"assertions":["own account transfer"]}

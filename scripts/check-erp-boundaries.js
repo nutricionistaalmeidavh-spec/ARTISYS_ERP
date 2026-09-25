@@ -1,0 +1,6 @@
+'use strict';
+const fs=require('node:fs');const path=require('node:path');const root=path.resolve(process.argv[2]||process.cwd());
+const forbidden=['createPdvRuntime','pdv-runtime','/cash/','/restaurant/','/printing/','/fiscal/','/pizzeria/','/delivery/','/self-service/','serialport','pdv-artisys.sqlite','com.artisys.pdv','ArtiSys PDV','Terminal PDV'];const targets=['js','server','desktop','package.json'];const violations=[];
+function scan(file){const normalized=file.replace(/\\/g,'/');if(normalized.includes('/test/')||normalized.includes('/docs/'))return;const text=fs.readFileSync(file,'utf8');for(const token of forbidden)if(text.includes(token))violations.push(`${path.relative(root,file)} -> ${token}`);}
+function walk(target){if(!fs.existsSync(target))return;const stat=fs.statSync(target);if(stat.isFile()){scan(target);return;}for(const name of fs.readdirSync(target)){const full=path.join(target,name);const st=fs.statSync(full);if(st.isDirectory())walk(full);else if(/\.(?:js|cjs|mjs|json|html)$/i.test(name))scan(full);}}
+for(const item of targets)walk(path.join(root,item));if(violations.length){console.error(`Forbidden ERP boundary dependencies found:\n${violations.join('\n')}`);process.exit(1);}console.log('ERP boundary check: OK');

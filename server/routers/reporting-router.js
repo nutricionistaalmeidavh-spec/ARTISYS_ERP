@@ -1,0 +1,4 @@
+'use strict';
+const {json}=require('../http-utils');const {requireActor,dateRange,asHttpError}=require('../router-utils');
+function createReportingRouter({runtime,sessions}={}){return async function(req,res,url){if(!url.pathname.startsWith('/api/v1/reports/'))return false;try{requireActor(req,sessions,['admin','manager']);const range=dateRange(url);if(url.pathname==='/api/v1/reports/sales'&&req.method==='GET'){json(res,200,runtime.reports.buildSalesSummary({...range,basis:url.searchParams.get('basis')||'accrual'}));return true;}if(url.pathname==='/api/v1/reports/purchases'&&req.method==='GET'){json(res,200,runtime.reports.buildPurchaseSummary(range));return true;}if(url.pathname==='/api/v1/reports/inventory'&&req.method==='GET'){json(res,200,runtime.reports.buildInventorySummary());return true;}return false;}catch(error){throw asHttpError(error);}};}
+module.exports={createReportingRouter};
