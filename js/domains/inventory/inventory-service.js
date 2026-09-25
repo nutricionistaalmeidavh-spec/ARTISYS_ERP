@@ -1,0 +1,18 @@
+'use strict';
+const {randomUUID}=require('node:crypto');
+const {writeAudit}=require('../../core/audit/audit-log');
+const {assertRole}=require('../../core/auth/rbac');
+const {quantity}=require('./inventory-rules');
+function createInventoryService({db,catalog,now=()=>new Date().toISOString(),idFactory=p=>`${p}-${randomUUID()}`}={}){
+ if(!db||!catalog)throw new TypeError('db and catalog are required.');
+ const mapLocation=row=>row&&({id:row.id,name:row.name,active:Boolean(row.active),createdAt:row.created_at,updatedAt:row.updated_at});
+ const mapMovement=row=>row&&({id:row.id,productId:row.product_id,locationId:row.location_id,delta:Number(row.delta_qty),unitCostCents:row.unit_cost_cents==null?null:Number(row.unit_cost_cents),sourceType:row.source_type,sourceId:row.source_id,createdBy:row.created_by,createdAt:row.created_at});
+ function createLocation(input={},actor=null){assertRole(actor,['admin','manager']);const id=String(input.id||idFactory('location')),name=String(input.name||'').trim();if(!name)throw new Error('Nome do local obrigatorio.');const ts=String(now());db.prepare('INSERT INTO inventory_locations(id,name,active,created_at,updated_at) VALUES(?,?,1,?,?)').run(id,name,ts,ts);writeAudit(db,{action:'inventory.location.create',entity:'inventory-location',entityId:id,actor,context:{}},now);return getLocation(id);}
+ function getLocation(id){return mapLocation(db.prepare('SELECT * FROM inventory_locations WHERE id=?').get(String(id)));}
+ function requireLocation(id){const row=getLocation(id);if(!row)throw new Error('Local de estoque nao encontrado.');if(!row.active)throw new Error('Local de estoque inativo.');return row;}
+ function getBalance(productId,locationId){return Number(db.prepare('SELECT COALESCE(SUM(delta_qty),0) balance FROM inventory_movements WHERE product_id=? AND location_id=?').get(String(productId),String(locationId))?.balance||0);}
+ function move(input={},actor=null){assertRole(actor,['admin','manager','system']);const product=catalog.requireActiveProduct(input.productId),location=requireLocation(input.locationId),delta=quantity(input.delta,'delta');if(delta===0)throw new Error('Movimento de estoque nao pode ser zero.');const current=getBalance(product.id,location.id);if(product.trackStock&&current+delta<0)throw new Error('Estoque insuficiente para o movimento.');const id=String(input.id||idFactory('movement')),ts=String(now());db.prepare('INSERT INTO inventory_movements(id,product_id,location_id,delta_qty,unit_cost_cents,source_type,source_id,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?)').run(id,product.id,location.id,delta,input.unitCostCents==null?null:Number(input.unitCostCents),input.sourceType||null,input.sourceId||null,actor?.userId||null,ts);writeAudit(db,{action:'inventory.move',entity:'inventory-movement',entityId:id,actor,context:{productId:product.id,locationId:location.id,delta,sourceType:input.sourceType||null,sourceId:input.sourceId||null}},now);return mapMovement(db.prepare('SELECT * FROM inventory_movements WHERE id=?').get(id));}
+ function listMovements({productId=null,locationId=null,sourceType=null,sourceId=null}={}){const clauses=[],params=[];for(const [col,val] of [['product_id',productId],['location_id',locationId],['source_type',sourceType],['source_id',sourceId]])if(val!=null){clauses.push(`${col}=?`);params.push(String(val));}return db.prepare(`SELECT * FROM inventory_movements${clauses.length?` WHERE ${clauses.join(' AND ')}`:''} ORDER BY created_at,id`).all(...params).map(mapMovement);}
+ return{createLocation,getLocation,requireLocation,getBalance,move,listMovements};
+}
+module.exports={createInventoryService};
