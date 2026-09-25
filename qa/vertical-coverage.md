@@ -32,7 +32,7 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Compras | Editar adjudicação | sim | sim | não | não | versionamento/estado | SEM UI |
 | Compras | Enviar adjudicação para aprovação | sim | sim | sim | sim | política/estado | COBERTO |
 | Compras | Aprovar | sim | sim | sim | sim | RBAC/estado | COBERTO |
-| Compras | Rejeitar aprovação | sim | sim | sim | pendente E2E dedicado | RBAC/motivo | PARCIAL |
+| Compras | Rejeitar aprovação | sim | sim | sim | sim | RBAC/motivo | COBERTO |
 | Compras | Gerar pedidos | sim | sim | sim | sim | estado/idempotência | COBERTO |
 | Compras | Pedido manual | sim | sim | não | não | RBAC/validação | SEM UI |
 | Compras | Enviar pedido | sim | sim | sim | sim | estado | COBERTO |
