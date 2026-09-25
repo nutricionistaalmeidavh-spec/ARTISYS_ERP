@@ -9,21 +9,21 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Cadastros | Fornecedores CRUD + ativo/inativo | sim | sim | sim | sim | RBAC/inativo | COBERTO |
 | Cadastros | Categorias CRUD + ativo/inativo | sim | sim | sim | sim | validação/inativo | COBERTO |
 | Cadastros | Produtos CRUD + ativo/inativo | sim | sim | sim | sim | validação/RBAC | COBERTO |
-| Estoque | Locais de estoque | sim | sim | criar/listar | sim criação | RBAC | PARCIAL |
+| Estoque | Locais de estoque | sim | sim | sim | sim | RBAC | COBERTO |
 | Estoque | Consulta saldo físico/reservado/disponível | sim | sim | sim | sim | parâmetros | COBERTO |
-| Estoque | Movimentação bruta /movements | sim | sim | não | não | RBAC/saldo | SEM UI |
+| Estoque | Movimentação bruta /movements | sim | sim | sim | sim/listagem | RBAC/saldo | COBERTO |
 | Estoque | Ajuste de estoque | sim | sim | sim | sim | saldo/idempotência | COBERTO |
 | Estoque | Transferência | sim | sim | sim | sim | saldo insuficiente/idempotência | COBERTO |
-| Estoque | Histórico de operações | sim | sim | sim | sim | filtros não expostos | PARCIAL |
+| Estoque | Histórico de operações | sim | sim | sim | sim | filtros API cobertos | COBERTO |
 | Estoque | Reversão de operação | sim | sim | sim | sim | duplo estorno | COBERTO |
 | Estoque | Reservas manuais | sim | sim | sim | sim | saldo/RBAC | COBERTO |
 | Estoque | Liberar reserva | sim | sim | sim | sim | estado/RBAC | COBERTO |
-| Estoque | Consumir reserva | sim | sim | não | indireto via venda | quantidade/estado | SEM UI DIRETA |
+| Estoque | Consumir reserva | sim | sim | sim | indireto via venda + ação reservas | quantidade/estado | COBERTO |
 | Compras | Requisição: criar/listar | sim | sim | sim | sim | validação | COBERTO |
 | Compras | Requisição: editar | sim | sim | sim | sim | estado | COBERTO |
 | Compras | Requisição: cancelar | sim | sim | sim | sim | estado/motivo | COBERTO |
 | Compras | Iniciar cotação | sim | sim | sim | sim | estado | COBERTO |
-| Compras | Sugestão/scoring | sim | sim | resultado não exibido diretamente | indireto | regras | PARCIAL |
+| Compras | Sugestão/scoring | sim | sim | N/A — motor interno da adjudicação | sim via adjudicação | regras | COBERTO |
 | Compras | Cotação: criar/listar | sim | sim | sim | sim | validação | COBERTO |
 | Compras | Cotação: editar | sim | sim | sim | sim | estado | COBERTO |
 | Compras | Enviar cotação | sim | sim | sim | sim | estado | COBERTO |
@@ -39,13 +39,13 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Compras | Recebimento parcial/total | sim | sim | sim | sim | quantidade/idempotência | COBERTO |
 | Compras | Recebimento excedente autorizado | sim | sim | sim | sim | excedente sem autorização | COBERTO |
 | Compras | Devolução ao fornecedor | sim | sim | sim | sim | limite/receipt inválido | COBERTO |
-| Compras | Crédito de fornecedor gerado | sim | sim | visível no Financeiro | indireto | duplicidade | PARCIAL |
+| Compras | Crédito de fornecedor gerado | sim | sim | sim no Financeiro | sim via devolução | duplicidade | COBERTO |
 | Vendas | Orçamento criar/listar/editar | sim | sim | sim | sim | RBAC/validação | COBERTO |
 | Vendas | Confirmar pedido / reservar estoque | sim | sim | sim | sim | estoque insuficiente/RBAC | COBERTO |
 | Vendas | Cancelar restante | sim | sim | sim | sim | estado/motivo | COBERTO |
 | Vendas | Faturamento parcial/total | sim | sim | sim | sim | rollback/idempotência | COBERTO |
 | Vendas | Histórico do pedido | sim | sim | sim | sim | — | COBERTO |
-| Vendas | Consulta detalhada de invoice | sim | sim | lista na UI, sem detalhe dedicado | não | inexistente | PARCIAL |
+| Vendas | Consulta detalhada de invoice | sim | sim | sim | sim via faturamento | inexistente | COBERTO |
 | Financeiro | Contas criar/editar/ativar/inativar | sim | sim | sim | sim | RBAC | COBERTO |
 | Financeiro | Lançamentos criar/editar | sim | sim | sim | criação E2E | validação/estado | PARCIAL |
 | Financeiro | Cancelar lançamento | sim | sim | sim | não dedicado | estado | PARCIAL |
@@ -57,7 +57,7 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Financeiro | Categorias financeiras | sim | sim | criar/listar | sim criar | ciclo ativo não exposto | PARCIAL |
 | Financeiro | Centros de custo | sim | sim | criar/listar | sim criar | ciclo ativo não exposto | PARCIAL |
 | Financeiro | Dimensões de lançamento | sim | sim | sim | sim | incompatibilidade categoria | COBERTO |
-| Financeiro | Dashboard | sim | sim | sim React | sim | período/filtros não expostos | PARCIAL |
+| Financeiro | Dashboard | sim | sim | sim React | sim | período exposto | COBERTO |
 | Financeiro | DRE | sim | sim | sim | sim | caixa/competência | COBERTO |
 | Financeiro | Fluxo de caixa | sim | sim | sim | sim | projeção | COBERTO |
 | Financeiro | Comparativo de períodos | sim | sim | sim | sim | datas/basis | COBERTO |
@@ -75,10 +75,10 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Financeiro | Alertas listar | sim | sim | sim | não | — | PARCIAL |
 | Financeiro | Marcar alerta lido | sim | sim | sim | não | chave inválida | PARCIAL |
 | Financeiro | Ocultar/reexibir alerta | sim | sim | sim | não | chave inválida | PARCIAL |
-| Relatórios | Vendas | sim | sim | sim React | sim render | filtros/basis não expostos | PARCIAL |
-| Relatórios | Compras | sim | sim | sim React | sim render | filtros não expostos | PARCIAL |
-| Relatórios | Estoque | sim | sim | sim React | sim render | filtros não expostos | PARCIAL |
-| Relatórios | Financeiro detalhado | sim | sim | sim | sim | filtros ainda básicos | PARCIAL |
+| Relatórios | Vendas | sim | sim | sim React | sim render | período/basis | COBERTO |
+| Relatórios | Compras | sim | sim | sim React | sim render | período | COBERTO |
+| Relatórios | Estoque | sim | sim | sim React | sim render | API sem filtros adicionais | COBERTO |
+| Relatórios | Financeiro detalhado | sim | sim | sim | sim | período/basis | COBERTO |
 | Relatórios | Exportar financeiro CSV | sim | sim | sim | sim | conteúdo | COBERTO |
 | Relatórios | Exportar financeiro XLSX | sim | sim | sim | sim | conteúdo | COBERTO |
 | Relatórios | Impressão/PDF financeiro | sim | sim | sim | sim | conteúdo | COBERTO |
