@@ -1,0 +1,794 @@
+ERP ARTISYS — FUNCIONALIDADES ESPERADAS
+Data: 25/09/2026
+
+OBJETIVO
+Construir um ERP modular para PMEs brasileiras, com core obrigatório gratuito, self-hosted e open source. Serviços pagos podem existir apenas como integrações opcionais, nunca como dependências do funcionamento principal.
+
+==================================================
+1. FUNDAÇÃO DO SISTEMA
+==================================================
+- Multiempresa / multitenancy
+- Cadastro de empresas, filiais e unidades
+- Usuários e autenticação
+- Perfis e permissões por função (RBAC)
+- Permissões por empresa, módulo e operação
+- Auditoria completa de ações
+- Histórico de alterações
+- Logs de acesso
+- Sessões e controle de dispositivos
+- Configurações gerais por empresa
+- Preferências regionais, moeda, fuso e idioma
+- Numeração automática de documentos
+- Campos personalizados
+- Importação e exportação de dados
+- Backup e restauração
+- API REST
+- Webhooks
+- Integrações via chave/API
+- Modo offline quando aplicável
+- Atualização segura do sistema
+
+==================================================
+2. DASHBOARD
+==================================================
+- Visão geral da empresa
+- Faturamento
+- Receitas e despesas
+- Contas a pagar
+- Contas a receber
+- Saldo disponível
+- Fluxo de caixa
+- Produtos com estoque baixo
+- Vendas do período
+- Ticket médio
+- Produtos mais vendidos
+- Clientes mais ativos
+- Pedidos pendentes
+- Compras pendentes
+- Alertas operacionais
+- Indicadores configuráveis
+- Filtros por período, empresa e filial
+
+==================================================
+3. CADASTROS
+==================================================
+- Clientes
+- Fornecedores
+- Transportadoras
+- Funcionários
+- Vendedores
+- Representantes
+- Produtos
+- Serviços
+- Categorias
+- Marcas
+- Unidades de medida
+- Tabelas de preço
+- Centros de custo
+- Contas financeiras
+- Formas de pagamento
+- Condições de pagamento
+- Bancos e caixas
+- Planos de contas
+- Projetos / obras / contratos
+- Veículos e equipamentos quando aplicável
+
+==================================================
+4. CRM
+==================================================
+- Leads
+- Clientes potenciais
+- Funil de vendas
+- Etapas comerciais
+- Histórico de contatos
+- Tarefas e follow-ups
+- Agenda comercial
+- Observações
+- Responsável pelo lead
+- Origem do lead
+- Conversão de lead em cliente
+- Orçamentos vinculados
+- Indicadores de conversão
+- Motivos de perda
+- Importação de leads
+- Integração opcional com WhatsApp, e-mail e formulários
+
+==================================================
+5. VENDAS
+==================================================
+- Orçamentos
+- Propostas comerciais
+- Pedidos de venda
+- Conversão orçamento -> pedido -> venda
+- Venda rápida
+- Vendas recorrentes
+- Descontos
+- Acréscimos
+- Comissão de vendedores
+- Tabelas de preços
+- Condições especiais por cliente
+- Limite de crédito
+- Histórico de compras do cliente
+- Reserva de estoque
+- Separação de pedidos
+- Faturamento
+- Cancelamentos
+- Devoluções
+- Trocas
+- Observações internas
+- Anexos
+- Status do pedido
+- Impressão / PDF de documentos
+- Envio por e-mail ou WhatsApp opcional
+
+==================================================
+6. PDV / FRENTE DE CAIXA
+==================================================
+- Abertura de caixa
+- Fechamento de caixa
+- Sangria
+- Suprimento
+- Venda por código, nome ou código de barras
+- Leitor de código de barras
+- Busca rápida de produtos
+- Carrinho
+- Descontos por item ou venda
+- Múltiplas formas de pagamento
+- Pagamento parcial
+- Troco
+- Cancelamento
+- Devolução
+- Impressão de comprovante
+- Histórico de vendas
+- Controle por operador
+- Controle por caixa
+- Fechamento por operador
+- Venda offline quando tecnicamente viável
+- Integração fiscal opcional
+
+==================================================
+7. ESTOQUE
+==================================================
+- Estoque por produto
+- Estoque por empresa
+- Estoque por filial
+- Múltiplos depósitos
+- Entradas
+- Saídas
+- Transferências
+- Ajustes
+- Inventário
+- Contagem de estoque
+- Estoque mínimo
+- Estoque máximo
+- Ponto de reposição
+- Reserva de estoque
+- Lotes
+- Validade
+- Número de série
+- Rastreabilidade
+- Histórico de movimentações
+- Custo médio
+- Último custo
+- Custo por lote
+- Curva ABC
+- Produtos sem giro
+- Produtos com maior giro
+- Alertas de ruptura
+- Importação de estoque
+- Código de barras
+- Etiquetas
+- QR Code
+
+==================================================
+8. COMPRAS
+==================================================
+- Solicitação de compra
+- Cotação com fornecedores
+- Comparativo de preços
+- Pedido de compra
+- Aprovação de compra
+- Recebimento
+- Entrada automática no estoque
+- Vinculação com contas a pagar
+- Histórico por fornecedor
+- Prazo médio de entrega
+- Último preço de compra
+- Custos adicionais
+- Frete
+- Descontos
+- Devolução ao fornecedor
+- Anexos e documentos
+- Compras recorrentes
+- Sugestão de compra por estoque mínimo
+
+==================================================
+9. FINANCEIRO
+==================================================
+- Contas a pagar
+- Contas a receber
+- Receitas
+- Despesas
+- Baixas totais
+- Baixas parciais
+- Estornos
+- Cancelamentos preservando histórico
+- Recorrências
+- Parcelamentos
+- Vencimentos
+- Juros
+- Multas
+- Descontos
+- Categorias financeiras
+- Centros de custo
+- Plano de contas
+- Contas bancárias
+- Caixa
+- Transferências entre contas
+- Conciliação manual
+- Conciliação bancária opcional
+- Fluxo de caixa realizado
+- Fluxo de caixa previsto
+- DRE
+- Demonstrativo por centro de custo
+- Resultado por empresa
+- Resultado por projeto / obra / contrato
+- Inadimplência
+- Contas vencidas
+- Previsão de recebimentos
+- Previsão de pagamentos
+- Saldo consolidado
+- Relatórios financeiros
+- Exportação CSV/XLSX/PDF
+- Integração bancária opcional
+
+==================================================
+10. FISCAL
+==================================================
+Core:
+- Cadastro de dados fiscais
+- NCM
+- CFOP
+- CST / CSOSN
+- CEST
+- ICMS
+- IPI
+- PIS
+- COFINS
+- Regras fiscais configuráveis
+- Tributação por produto
+- Tributação por operação
+- Tributação por empresa
+
+Integrações opcionais:
+- NF-e
+- NFC-e
+- NFS-e
+- CT-e
+- MDF-e
+- Consulta de documentos fiscais
+- Importação XML
+- Armazenamento XML
+- Cancelamento
+- Carta de correção
+- Inutilização
+- DANFE / PDF
+
+Observação:
+A emissão fiscal pode depender de certificados, SEFAZ, municípios ou provedores externos. Nenhum serviço pago deve ser requisito do core do ERP.
+
+==================================================
+11. SERVIÇOS / ORDENS DE SERVIÇO
+==================================================
+- Ordens de serviço
+- Status da OS
+- Cliente
+- Equipamento / veículo
+- Técnico responsável
+- Serviços executados
+- Peças utilizadas
+- Horas trabalhadas
+- Checklist
+- Fotos
+- Anexos
+- Orçamento
+- Aprovação do cliente
+- Histórico
+- Custos
+- Faturamento
+- Garantia
+- Assinatura do cliente
+- PDF da OS
+
+==================================================
+12. PROJETOS / OBRAS / CONTRATOS
+==================================================
+- Cadastro de projetos
+- Obras
+- Contratos
+- Etapas
+- Cronograma
+- Planejamento físico
+- Planejamento financeiro
+- Medições
+- Receitas previstas
+- Despesas previstas
+- Custos realizados
+- Centros de custo
+- Fluxo de caixa por projeto
+- DRE por projeto
+- Materiais
+- Mão de obra
+- Fornecedores
+- Documentos
+- Fotos
+- Histórico de alterações
+- Comparação previsto x realizado
+
+==================================================
+13. FROTA E MANUTENÇÃO
+==================================================
+- Veículos
+- Máquinas
+- Equipamentos
+- Quilometragem
+- Horímetro
+- Manutenções preventivas
+- Manutenções corretivas
+- Planos de manutenção
+- Alertas
+- Ordens de serviço
+- Peças utilizadas
+- Custos
+- Abastecimentos
+- Consumo
+- Histórico
+- Documentos
+- Vencimentos
+- Seguro
+- Licenciamento
+
+==================================================
+14. RELATÓRIOS E BI
+==================================================
+- Relatórios de vendas
+- Relatórios de compras
+- Relatórios financeiros
+- Relatórios de estoque
+- Relatórios de clientes
+- Relatórios de fornecedores
+- Relatórios de produtos
+- Relatórios por vendedor
+- Relatórios por filial
+- Relatórios por centro de custo
+- Relatórios por projeto
+- Relatórios personalizados
+- Filtros avançados
+- Exportação CSV
+- Exportação XLSX
+- Exportação PDF
+- Dashboards configuráveis
+- Indicadores
+- Gráficos
+- Comparação entre períodos
+
+==================================================
+15. DOCUMENTOS E ANEXOS
+==================================================
+- Upload de arquivos
+- Documentos por cliente
+- Documentos por fornecedor
+- Documentos por produto
+- Documentos por pedido
+- Documentos por OS
+- Documentos por projeto
+- Fotos
+- PDFs
+- XMLs
+- Versionamento
+- Histórico
+- Controle de acesso
+- Armazenamento local/self-hosted
+- OCR opcional com solução open source
+
+==================================================
+16. AUTOMAÇÕES
+==================================================
+- Regras automáticas
+- Alertas de vencimento
+- Alertas de estoque
+- Alertas de cobrança
+- Alertas de manutenção
+- Tarefas agendadas
+- Recorrências
+- Geração automática de lançamentos
+- Webhooks
+- Integrações por API
+- Automação via n8n self-hosted
+- Importações automáticas configuráveis
+
+==================================================
+17. NOTIFICAÇÕES
+==================================================
+- Central de notificações interna
+- Contas vencendo
+- Contas vencidas
+- Estoque baixo
+- Pedidos pendentes
+- Compras pendentes
+- OS atrasadas
+- Contratos próximos do vencimento
+- Manutenções programadas
+- Alertas configuráveis
+- E-mail opcional
+- WhatsApp opcional
+
+==================================================
+18. E-COMMERCE / CATÁLOGO
+==================================================
+- Catálogo online
+- Produtos
+- Variantes
+- Preços
+- Estoque
+- Cliente
+- Carrinho
+- Geração de pedido
+- Pedido sem checkout obrigatório
+- Status do pedido
+- Integração com ERP
+- Multiempresa
+- URL por empresa
+- Personalização visual
+- Marketplace como evolução futura
+
+==================================================
+19. USUÁRIOS, PERMISSÕES E SEGURANÇA
+==================================================
+- Usuário
+- Senha segura
+- Perfis
+- RBAC
+- Permissões por módulo
+- Permissões por ação
+- Permissões por empresa
+- Auditoria
+- Logs
+- Histórico de alterações
+- Bloqueio de usuário
+- Expiração de sessão
+- Recuperação de senha
+- 2FA opcional
+- Política de senha
+- Controle de IP opcional
+- Registro de tentativas de login
+
+==================================================
+20. LGPD
+==================================================
+- Controle de acesso a dados pessoais
+- Registro de tratamento
+- Auditoria
+- Exportação de dados
+- Anonimização
+- Exclusão quando aplicável
+- Controle de consentimento quando necessário
+- Política de retenção
+- Logs de acesso
+- Permissões por função
+- Backup seguro
+- Criptografia de dados sensíveis
+
+==================================================
+21. INTEGRAÇÕES
+==================================================
+Core:
+- API REST
+- Webhooks
+- CSV
+- XLSX
+- JSON
+- Importação e exportação
+
+Opcionais:
+- Bancos
+- PIX
+- Gateways de pagamento
+- Asaas
+- Mercado Pago
+- Pluggy/Open Finance
+- WhatsApp
+- E-mail transacional
+- Marketplaces
+- Mercado Livre
+- Shopee
+- E-commerce
+- Contabilidade
+- SEFAZ
+- Prefeituras
+- APIs fiscais
+
+==================================================
+22. ADMINISTRAÇÃO
+==================================================
+- Gestão de empresas
+- Gestão de usuários
+- Permissões
+- Configurações
+- Auditoria
+- Logs
+- Backups
+- Restauração
+- Importação
+- Exportação
+- Integrações
+- Webhooks
+- Status do sistema
+- Versão instalada
+- Atualizações
+- Diagnóstico
+- Saúde dos serviços
+
+==================================================
+23. FUNCIONALIDADES QUE O CLIENTE SENTIRIA FALTA
+==================================================
+Consideradas essenciais para evitar que o ERP pareça incompleto:
+
+- Contas a pagar e receber
+- Fluxo de caixa
+- DRE
+- Estoque
+- Compras
+- Vendas
+- Clientes e fornecedores
+- Orçamentos e pedidos
+- PDV
+- Relatórios
+- Dashboard
+- Controle de usuários
+- Permissões
+- Histórico/auditoria
+- Exportação Excel/PDF
+- Backup
+- Multiempresa
+- Centros de custo
+- Recorrências
+- Alertas
+- Importação de dados
+- Integração via API
+- Fiscal, ao menos como integração opcional
+- Conciliação bancária, ao menos opcional
+
+==================================================
+24. PRIORIDADE DE DESENVOLVIMENTO
+==================================================
+
+MVP
+- Multiempresa
+- Usuários
+- RBAC
+- Auditoria
+- Clientes
+- Fornecedores
+- Produtos
+- Estoque
+- Compras
+- Vendas
+- Orçamentos
+- Pedidos
+- Contas a pagar
+- Contas a receber
+- Fluxo de caixa
+- DRE
+- Dashboard
+- Relatórios básicos
+- Backup
+- Importação/exportação
+- API
+
+V1
+- PDV
+- CRM
+- Centros de custo
+- Recorrências
+- Conciliação
+- Tabelas de preços
+- Comissão
+- Inventário
+- Lotes
+- Aprovação de compras
+- Relatórios avançados
+- Webhooks
+- Automações
+- Notificações
+- Catálogo online
+
+V2
+- Fiscal completo
+- Ordens de serviço
+- Projetos / obras
+- Frota
+- Manutenção
+- BI avançado
+- Marketplace
+- Apps móveis
+- OCR
+- Workflows configuráveis
+- Integrações contábeis
+- Integrações bancárias avançadas
+
+==================================================
+25. MÓDULOS JÁ EXISTENTES COM POTENCIAL DE REUSO
+==================================================
+sistemafinanceiro
+- Contas a pagar
+- Contas a receber
+- Fluxo de caixa
+- DRE
+- Dashboard financeiro
+- Recorrências
+- Alertas
+- RBAC
+- Auditoria
+Recomendação: extrair/adaptar como núcleo financeiro do ERP.
+
+Almoxarifado
+- Produtos
+- Estoque
+- Movimentações
+- Inventário
+- Entradas e saídas
+Recomendação: extrair/adaptar como módulo de estoque.
+
+OficinaAgricola
+- Ordens de serviço
+- Equipamentos
+- Estoque
+- Financeiro operacional
+- QR Code
+Recomendação: aproveitar domínio de OS/equipamentos e integrações.
+
+OBRANAMAOCOMERCIAL
+- Planejamento físico-financeiro
+- Obras
+- Contratos
+- Medições
+- Previsão de caixa
+- Contas por obra
+Recomendação: reutilizar conceitos e módulos de projetos/obras.
+
+lojaonline
+- Multiempresa
+- Clientes
+- Fornecedores
+- Catálogo
+- Preços
+- Estoque
+- Compras
+- PDV
+- Pedidos
+- Financeiro
+Recomendação: forte candidato para reaproveitar infraestrutura comercial e multitenancy.
+
+WppProspector
+- Leads
+- Prospecção
+- CRM
+- Contatos
+Recomendação: extrair o domínio de CRM, desacoplando integrações específicas de WhatsApp.
+
+frota-e-manutencao
+- Veículos
+- Manutenção
+- Custos
+- Histórico
+Recomendação: reutilizar como módulo vertical opcional.
+
+MercadoLivre
+- Integrações com marketplace
+Recomendação: manter como adapter opcional, nunca como dependência do core.
+
+==================================================
+26. PRINCÍPIO DE ARQUITETURA
+==================================================
+O ERP deve ser modular.
+
+Exemplo de módulos:
+
+core/
+auth/
+users/
+companies/
+rbac/
+audit/
+
+crm/
+customers/
+suppliers/
+
+catalog/
+products/
+pricing/
+
+inventory/
+purchasing/
+sales/
+pos/
+
+finance/
+accounting-lite/
+
+projects/
+service-orders/
+fleet/
+
+documents/
+reports/
+notifications/
+automation/
+
+integrations/
+fiscal/
+marketplaces/
+payments/
+banking/
+
+Cada módulo deve depender do mínimo possível dos demais e compartilhar apenas contratos, eventos e entidades realmente comuns.
+
+==================================================
+27. STACK SELF-HOSTED / OPEN SOURCE
+==================================================
+Banco:
+- PostgreSQL
+
+Cache:
+- Redis ou Valkey
+
+Storage:
+- MinIO ou storage local
+
+Autenticação:
+- Implementação própria segura ou Keycloak
+
+Filas:
+- RabbitMQ, NATS ou Redis/Valkey
+
+Automação:
+- n8n self-hosted
+
+BI:
+- Metabase
+- Apache Superset
+
+OCR:
+- Tesseract OCR
+
+Observabilidade:
+- Prometheus
+- Grafana
+- Loki
+
+Reverse proxy:
+- Caddy
+- Nginx
+- Traefik
+
+Containers:
+- Docker / Docker Compose
+
+==================================================
+28. REGRA DE PRODUTO
+==================================================
+O funcionamento básico do ERP não pode depender de:
+- assinatura SaaS obrigatória;
+- banco de dados pago;
+- storage pago;
+- serviço de autenticação pago;
+- gateway pago;
+- API de IA;
+- serviço de automação pago;
+- serviço fiscal terceirizado obrigatório.
+
+Esses recursos podem existir apenas como integrações opcionais.
+
+FIM
