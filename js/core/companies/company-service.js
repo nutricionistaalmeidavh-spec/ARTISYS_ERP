@@ -1,0 +1,19 @@
+'use strict';
+const {randomUUID}=require('node:crypto');
+const {assertRole}=require('../auth/rbac');
+const {writeAudit}=require('../audit/audit-log');
+function createCompanyService({db,now=()=>new Date().toISOString(),idFactory=p=>`${p}-${randomUUID()}`}={}){
+ if(!db)throw new TypeError('Database is required.');
+ const map=row=>row&&({id:row.id,name:row.name,taxId:row.tax_id,active:Boolean(row.active),createdAt:row.created_at,updatedAt:row.updated_at});
+ function ensureDefaultAccess(userId){const user=db.prepare('SELECT id FROM users WHERE id=?').get(String(userId));if(!user)return false;db.prepare("INSERT OR IGNORE INTO user_company_access(user_id,company_id,created_at) VALUES(?,'default',?)").run(String(userId),String(now()));return true;}
+ function list({includeInactive=false}={}){return db.prepare(`SELECT * FROM companies${includeInactive?'':' WHERE active=1'} ORDER BY name,id`).all().map(map);}
+ function listForUser(userId){ensureDefaultAccess(userId);return db.prepare('SELECT c.* FROM companies c JOIN user_company_access a ON a.company_id=c.id WHERE a.user_id=? AND c.active=1 ORDER BY c.name,c.id').all(String(userId)).map(map);}
+ function get(id){return map(db.prepare('SELECT * FROM companies WHERE id=?').get(String(id)));}
+ function create(input={},actor=null){assertRole(actor,['admin']);const name=String(input.name||'').trim();if(!name)throw new Error('Nome da empresa obrigatorio.');const id=String(input.id||idFactory('company'));const ts=String(now());db.prepare('INSERT INTO companies(id,name,tax_id,active,created_at,updated_at) VALUES(?,?,?,1,?,?)').run(id,name,String(input.taxId||'').trim()||null,ts,ts);if(actor?.userId)grantUser(actor.userId,id,actor);writeAudit(db,{action:'companies.create',entity:'company',entityId:id,actor,context:{name}},now);return get(id);}
+ function update(id,input={},actor=null){assertRole(actor,['admin']);const current=get(id);if(!current)throw new Error('Empresa nao encontrada.');const name=input.name===undefined?current.name:String(input.name||'').trim();if(!name)throw new Error('Nome da empresa obrigatorio.');const taxId=input.taxId===undefined?current.taxId:(String(input.taxId||'').trim()||null);db.prepare('UPDATE companies SET name=?,tax_id=?,updated_at=? WHERE id=?').run(name,taxId,String(now()),current.id);writeAudit(db,{action:'companies.update',entity:'company',entityId:current.id,actor,context:{name}},now);return get(current.id);}
+ function grantUser(userId,companyId,actor=null){assertRole(actor,['admin']);if(!db.prepare('SELECT 1 FROM users WHERE id=?').get(String(userId)))throw new Error('Usuario nao encontrado.');if(!get(companyId))throw new Error('Empresa nao encontrada.');db.prepare('INSERT OR IGNORE INTO user_company_access(user_id,company_id,created_at) VALUES(?,?,?)').run(String(userId),String(companyId),String(now()));writeAudit(db,{action:'companies.grant_user',entity:'company',entityId:String(companyId),actor,context:{userId:String(userId)}},now);return true;}
+ function revokeUser(userId,companyId,actor=null){assertRole(actor,['admin']);if(String(companyId)==='default'&&String(userId)===String(actor?.userId||''))throw new Error('Nao e permitido remover o proprio acesso a empresa principal.');db.prepare('DELETE FROM user_company_access WHERE user_id=? AND company_id=?').run(String(userId),String(companyId));writeAudit(db,{action:'companies.revoke_user',entity:'company',entityId:String(companyId),actor,context:{userId:String(userId)}},now);return true;}
+ function assertUserAccess(userId,companyId){ensureDefaultAccess(userId);const row=db.prepare('SELECT 1 FROM user_company_access a JOIN companies c ON c.id=a.company_id WHERE a.user_id=? AND a.company_id=? AND c.active=1').get(String(userId),String(companyId));if(!row)throw new Error('Usuario sem acesso a empresa.');return get(companyId);}
+ return{list,listForUser,get,create,update,grantUser,revokeUser,assertUserAccess,ensureDefaultAccess};
+}
+module.exports={createCompanyService};
