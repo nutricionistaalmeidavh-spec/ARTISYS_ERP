@@ -1,58 +1,135 @@
-# Matriz de cobertura vertical por funcionalidade
+# Matriz completa de cobertura funcional
 
-Critério: uma funcionalidade só é considerada verticalmente coberta quando existe evidência verificável nas camadas aplicáveis: domínio/backend, persistência, API, frontend, E2E pela interface e caminhos negativos. A quantidade total de testes não substitui esta matriz.
+Critério: **domínio/backend → persistência → API → UI → E2E do usuário → negativos**. “UI parcial” significa que a tela mostra parte da capacidade, mas não permite executar todo o contrato disponível no backend.
 
-| Funcionalidade | Backend/domínio | Persistência | API | Frontend | E2E usuário | Negativos | Status |
+| Área | Funcionalidade | Domínio/Persistência | API | UI | E2E | Negativos | Situação |
 |---|---|---|---|---|---|---|---|
-| Cliente: criar/editar/desativar/reativar | test/master-data-inventory.test.js | SQLite + reabertura/listagem | test/master-data-api.test.js | Cadastros | qa/e2e/master-data.test.js | permissão + inativo | COBERTO |
-| Fornecedor: CRUD/ciclo ativo | test/master-data-inventory.test.js | SQLite | test/master-data-api.test.js (parcial) | Cadastros | qa/e2e/master-data.test.js | permissão/inativo | COBERTO |
-| Categoria de produto: criar/editar/ciclo ativo | test/master-data-inventory.test.js | SQLite | test/master-data-api.test.js | Cadastros | qa/e2e/master-data.test.js | categoria inativa/preço inválido | COBERTO |
-| Produto: criar/editar/ciclo ativo | test/master-data-inventory.test.js | SQLite | test/master-data-api.test.js | Cadastros | qa/e2e/master-data.test.js | validações/permissão | COBERTO |
-| Local de estoque: criar | inventory domain | SQLite | test/inventory-api.test.js | Estoque | qa/e2e/inventory.test.js | — | PARCIAL |
-| Ajuste de estoque | test/inventory-operations.test.js | operação+movimento | test/inventory-api.test.js | Estoque | qa/e2e/inventory.test.js | permissão/idempotência | COBERTO |
-| Transferência de estoque | test/inventory-operations.test.js | transação atômica | test/inventory-api.test.js | Estoque | qa/e2e/inventory.test.js | saldo insuficiente/origem=destino/idempotência | COBERTO |
-| Estorno de operação de estoque | test/inventory-operations.test.js | movimento compensatório | test/inventory-api.test.js | Estoque | qa/e2e/inventory.test.js | duplo estorno | COBERTO |
-| Reserva/liberação/consumo | test/master-data-inventory.test.js | SQLite | test/inventory-api.test.js | não evidenciado | vendas cobre reserva/consumo indiretamente | saldo insuficiente | PARCIAL |
-| Requisição de compra | test/procurement-advanced.test.js | SQLite | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | estados/permissões parciais | PARCIAL |
-| Cotação de fornecedor | test/procurement-advanced.test.js | histórico de preço | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | estados parciais | PARCIAL |
-| Sugestão/scoring e adjudicação | test/procurement-advanced.test.js | award/versionamento | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | política/versionamento | COBERTO |
-| Aprovação de compra | test/procurement-advanced.test.js | snapshot política | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | papéis/estado | COBERTO |
-| Pedido de compra | test/procurement.test.js | SQLite | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | permissão/estado | PARCIAL |
-| Recebimento parcial/excedente | test/procurement.test.js + procurement-advanced | estoque+financeiro atômicos | test/procurement-api-advanced.test.js | Compras | qa/e2e/procurement.test.js | tolerância/rollback/idempotência | COBERTO |
-| Devolução de compra/crédito fornecedor | test/procurement-advanced.test.js | estoque+financeiro | procurement API | Compras | qa/e2e/procurement.test.js | receipt inexistente + limites | COBERTO |
-| Orçamento de venda: criar/editar | test/sales-admin.test.js | SQLite | test/sales-admin-api-operational.test.js | Vendas | qa/e2e/sales-admin.test.js | permissão | COBERTO |
-| Confirmar pedido/reservar estoque | test/sales-admin.test.js | reserva persistida | sales API | Vendas | qa/e2e/sales-admin.test.js | estoque/permissão | COBERTO |
-| Faturamento parcial/total | test/sales-admin.test.js | estoque+recebível atômicos | sales API | Vendas | qa/e2e/sales-admin.test.js | rollback/idempotência | COBERTO |
-| Cancelar saldo de pedido | test/sales-admin.test.js | libera reserva | sales API | Vendas | qa/e2e/sales-admin.test.js | motivo/estado | COBERTO |
-| Conta financeira | test/finance-base.test.js | SQLite | finance API | Financeiro | qa/e2e/finance.test.js (criar) | ciclo ativo não E2E | PARCIAL |
-| Lançamento pagar/receber | test/finance-base.test.js | SQLite | finance API | Financeiro | qa/e2e/finance.test.js (pagar) | validações/cancelamento | PARCIAL |
-| Baixa e estorno financeiro | test/finance-base.test.js | settlement append-only | finance API | Financeiro | qa/e2e/finance.test.js | excesso + estorno | COBERTO |
-| Categoria/centro de custo/dimensões | test/finance-base.test.js | SQLite | vertical-api-gaps.test.js | Financeiro | qa/e2e/finance.test.js | incompatibilidade categoria | COBERTO |
-| Recorrências | test/finance-automation.test.js | reinício/idempotência | finance API | Financeiro | qa/e2e/finance.test.js | fechamento dia 31 | COBERTO |
-| Importação OFX | test/finance-automation.test.js | fingerprint/idempotência | finance API | Financeiro | qa/e2e/finance.test.js | duplicidade | COBERTO |
-| Conciliação bancária | test/finance-automation.test.js | match persistido | finance API | Financeiro | qa/e2e/finance.test.js | confirmação explícita/idempotência | COBERTO |
-| Transferência entre contas | test/finance-automation.test.js | transações vinculadas | finance API | não evidenciado | não evidenciado | não gerar receita/despesa | PARCIAL |
-| Alertas financeiros | test/finance-automation.test.js | estado apresentação | finance API | não evidenciado | não evidenciado | não mutar financeiro | PARCIAL |
-| DRE | test/reporting-management.test.js | tabelas ERP | vertical-api-gaps.test.js | Dashboard/Financeiro | dashboard E2E indireto | caixa/competência | PARCIAL |
-| Fluxo de caixa | test/reporting-management.test.js | tabelas ERP | vertical-api-gaps.test.js | Dashboard/Financeiro | dashboard indireto | projeção | PARCIAL |
-| Relatório vendas | reporting-management | tabelas ERP | reporting API | Relatórios | react-migration.test.js | filtros/exportação não cobertos | PARCIAL |
-| Relatório compras | reporting-management | tabelas ERP | vertical-api-gaps.test.js | Relatórios | react-migration.test.js | filtros/exportação não cobertos | PARCIAL |
-| Relatório estoque | reporting-management | tabelas ERP | vertical-api-gaps.test.js | Relatórios | react-migration.test.js | filtros/exportação não cobertos | PARCIAL |
-| Exportação CSV/XLSX/impressão/recibo | reporting/finance IO | arquivos | reporting API | exposto conforme rota | não evidenciado por ação real | erros de IO não evidenciados | ABERTO |
+| Auth | Login / sessão / me / logout | sim | sim | sim | sim | login inválido/401 | COBERTO |
+| Cadastros | Clientes CRUD + ativo/inativo | sim | sim | sim | sim | RBAC/inativo | COBERTO |
+| Cadastros | Fornecedores CRUD + ativo/inativo | sim | sim | sim | sim | RBAC/inativo | COBERTO |
+| Cadastros | Categorias CRUD + ativo/inativo | sim | sim | sim | sim | validação/inativo | COBERTO |
+| Cadastros | Produtos CRUD + ativo/inativo | sim | sim | sim | sim | validação/RBAC | COBERTO |
+| Estoque | Locais de estoque | sim | sim | criar/listar | sim criação | RBAC | PARCIAL |
+| Estoque | Consulta saldo físico/reservado/disponível | sim | sim | sim | sim | parâmetros | COBERTO |
+| Estoque | Movimentação bruta /movements | sim | sim | não | não | RBAC/saldo | SEM UI |
+| Estoque | Ajuste de estoque | sim | sim | sim | sim | saldo/idempotência | COBERTO |
+| Estoque | Transferência | sim | sim | sim | sim | saldo insuficiente/idempotência | COBERTO |
+| Estoque | Histórico de operações | sim | sim | sim | sim | filtros não expostos | PARCIAL |
+| Estoque | Reversão de operação | sim | sim | sim | sim | duplo estorno | COBERTO |
+| Estoque | Reservas manuais | sim | sim | não | não | saldo/RBAC | SEM UI |
+| Estoque | Liberar reserva | sim | sim | não | não | estado/RBAC | SEM UI |
+| Estoque | Consumir reserva | sim | sim | não | indireto via venda | quantidade/estado | SEM UI DIRETA |
+| Compras | Requisição: criar/listar | sim | sim | sim | sim | validação | COBERTO |
+| Compras | Requisição: editar | sim | sim | não | não | estado | SEM UI |
+| Compras | Requisição: cancelar | sim | sim | não | não | estado/motivo | SEM UI |
+| Compras | Iniciar cotação | sim | sim | sim | sim | estado | COBERTO |
+| Compras | Sugestão/scoring | sim | sim | resultado não exibido diretamente | indireto | regras | PARCIAL |
+| Compras | Cotação: criar/listar | sim | sim | sim | sim | validação | COBERTO |
+| Compras | Cotação: editar | sim | sim | não | não | estado | SEM UI |
+| Compras | Enviar cotação | sim | sim | sim | sim | estado | COBERTO |
+| Compras | Histórico de preços | sim | sim | sim | fluxo E2E gera histórico | filtros | COBERTO |
+| Compras | Adjudicação por sugestão | sim | sim | sim | sim | estado | COBERTO |
+| Compras | Editar adjudicação | sim | sim | não | não | versionamento/estado | SEM UI |
+| Compras | Enviar adjudicação para aprovação | sim | sim | sim | sim | política/estado | COBERTO |
+| Compras | Aprovar | sim | sim | sim | sim | RBAC/estado | COBERTO |
+| Compras | Rejeitar aprovação | sim | sim | não | não | RBAC/motivo | SEM UI |
+| Compras | Gerar pedidos | sim | sim | sim | sim | estado/idempotência | COBERTO |
+| Compras | Pedido manual | sim | sim | não | não | RBAC/validação | SEM UI |
+| Compras | Enviar pedido | sim | sim | sim | sim | estado | COBERTO |
+| Compras | Recebimento parcial/total | sim | sim | sim | sim | quantidade/idempotência | COBERTO |
+| Compras | Recebimento excedente autorizado | sim | sim | sim | sim | excedente sem autorização | COBERTO |
+| Compras | Devolução ao fornecedor | sim | sim | sim | sim | limite/receipt inválido | COBERTO |
+| Compras | Crédito de fornecedor gerado | sim | sim | visível no Financeiro | indireto | duplicidade | PARCIAL |
+| Vendas | Orçamento criar/listar/editar | sim | sim | sim | sim | RBAC/validação | COBERTO |
+| Vendas | Confirmar pedido / reservar estoque | sim | sim | sim | sim | estoque insuficiente/RBAC | COBERTO |
+| Vendas | Cancelar restante | sim | sim | sim | sim | estado/motivo | COBERTO |
+| Vendas | Faturamento parcial/total | sim | sim | sim | sim | rollback/idempotência | COBERTO |
+| Vendas | Histórico do pedido | sim | sim | sim | sim | — | COBERTO |
+| Vendas | Consulta detalhada de invoice | sim | sim | lista na UI, sem detalhe dedicado | não | inexistente | PARCIAL |
+| Financeiro | Contas criar/editar/ativar/inativar | sim | sim | sim | sim | RBAC | COBERTO |
+| Financeiro | Lançamentos criar/editar | sim | sim | sim | criação E2E | validação/estado | PARCIAL |
+| Financeiro | Cancelar lançamento | sim | sim | sim | não dedicado | estado | PARCIAL |
+| Financeiro | Baixa | sim | sim | sim | sim | excesso | COBERTO |
+| Financeiro | Estorno de baixa | sim | sim | sim | sim | duplo estorno | COBERTO |
+| Financeiro | Créditos de fornecedor listar/aplicar | sim | sim | sim | não completo | limites/idempotência | PARCIAL |
+| Financeiro | Resumo financeiro | sim | sim | sim | indireto | — | COBERTO |
+| Financeiro | Grupos DRE | sim | sim GET | não | não | — | SEM UI |
+| Financeiro | Categorias financeiras | sim | sim | criar/listar | sim criar | ciclo ativo não exposto | PARCIAL |
+| Financeiro | Centros de custo | sim | sim | criar/listar | sim criar | ciclo ativo não exposto | PARCIAL |
+| Financeiro | Dimensões de lançamento | sim | sim | sim | sim | incompatibilidade categoria | COBERTO |
+| Financeiro | Dashboard | sim | sim | sim React | sim | período/filtros não expostos | PARCIAL |
+| Financeiro | DRE | sim | sim | não como relatório detalhado | não | caixa/competência | SEM UI |
+| Financeiro | Fluxo de caixa | sim | sim | não | não | projeção | SEM UI |
+| Financeiro | Comparativo de períodos | sim | sim | não | não | datas/basis | SEM UI |
+| Financeiro | OFX preview/importação | sim | sim | sim | sim | duplicidade | COBERTO |
+| Financeiro | Transações de extrato | sim | sim | sim | sim | filtros não expostos | PARCIAL |
+| Financeiro | Sugestões de conciliação | sim | sim | sim ao abrir conciliação | sim | sem candidato | COBERTO |
+| Financeiro | Aceitar conciliação | sim | sim | sim | sim | idempotência | COBERTO |
+| Financeiro | Rejeitar conciliação | sim | sim | não | não | idempotência | SEM UI |
+| Financeiro | Conciliação manual | sim | sim | não explícita | não | seleção inválida | SEM UI |
+| Financeiro | Sugestão transferência própria | sim | sim | botão revisar | cobertura parcial | pareamento | PARCIAL |
+| Financeiro | Confirmar transferência própria | sim | sim | fluxo existe | não dedicado | idempotência | PARCIAL |
+| Financeiro | Recorrência criar/listar | sim | sim | sim | sim | datas | COBERTO |
+| Financeiro | Gerar recorrências | sim | sim | sim | sim | idempotência/dia 31 | COBERTO |
+| Financeiro | Pausar/ativar recorrência | sim | sim | sim | não dedicado | estado | PARCIAL |
+| Financeiro | Alertas listar | sim | sim | sim | não | — | PARCIAL |
+| Financeiro | Marcar alerta lido | sim | sim | sim | não | chave inválida | PARCIAL |
+| Financeiro | Ocultar/reexibir alerta | sim | sim | sim | não | chave inválida | PARCIAL |
+| Relatórios | Vendas | sim | sim | sim React | sim render | filtros/basis não expostos | PARCIAL |
+| Relatórios | Compras | sim | sim | sim React | sim render | filtros não expostos | PARCIAL |
+| Relatórios | Estoque | sim | sim | sim React | sim render | filtros não expostos | PARCIAL |
+| Relatórios | Financeiro detalhado | sim | sim | não | não | filtros | SEM UI |
+| Relatórios | Exportar financeiro CSV | sim | sim | não | não | IO/conteúdo | SEM UI |
+| Relatórios | Exportar financeiro XLSX | sim | sim | não | não | IO/conteúdo | SEM UI |
+| Relatórios | Impressão/PDF financeiro | sim | sim | não | não | conteúdo | SEM UI |
+| Relatórios | Comprovante de baixa | sim | sim | não | não | settlement inválido | SEM UI |
+| Relatórios | Imprimir comprovante | sim | sim | não | não | settlement inválido | SEM UI |
+| Sistema | Health/local-first | sim | sim | sim | sim | indisponibilidade | COBERTO |
 
-## Regra de merge
+## Funcionalidades de backend/API sem cobertura completa na UI
 
-- **COBERTO**: há evidência nas camadas aplicáveis e pelo menos um fluxo E2E real quando a funcionalidade é exposta na UI, incluindo negativos relevantes.
-- **PARCIAL**: há implementação/testes, mas falta pelo menos uma camada ou cenário importante.
-- **ABERTO**: falta cobertura vertical de uso real.
-- Novas funcionalidades expostas ao usuário não podem ser declaradas concluídas apenas por testes unitários/API.
-- O gate automatizado atual de `scripts/check-vertical-coverage.js` é somente um detector auxiliar de presença e não prova cobertura vertical.
+Esta tabela é propositalmente separada da cobertura de testes. Ela responde: **“o backend já sabe fazer algo que o usuário não consegue executar completamente pela interface?”**
 
-## Próximas lacunas prioritárias
+| Prioridade | Área | Capacidade existente no backend/API | Situação da UI | O que falta para o usuário |
+|---|---|---|---|---|
+| P0 | Financeiro | DRE detalhada | ausente | tela, período, regime caixa/competência e resultado detalhado |
+| P0 | Financeiro | Fluxo de caixa + projeção | ausente | tela com período/projeção |
+| P0 | Financeiro | Comparação entre períodos | ausente | seleção dos dois períodos e visualização comparativa |
+| P0 | Relatórios | Relatório financeiro detalhado | ausente | tela/filtros |
+| P0 | Relatórios | Exportação CSV | ausente | ação de exportar/salvar arquivo |
+| P0 | Relatórios | Exportação XLSX | ausente | ação de exportar/salvar arquivo |
+| P0 | Relatórios | Impressão/PDF financeiro | ausente | preview/ação de impressão ou salvar PDF |
+| P0 | Relatórios | Comprovante de baixa + impressão | ausente | ação no lançamento/baixa para visualizar e imprimir |
+| P1 | Compras | Editar requisição | ausente | botão/form de edição enquanto permitido |
+| P1 | Compras | Cancelar requisição | ausente | ação + motivo/confirmação |
+| P1 | Compras | Editar cotação | ausente | botão/form antes do envio |
+| P1 | Compras | Editar adjudicação | ausente | tela de ajuste/versionamento da seleção |
+| P1 | Compras | Rejeitar aprovação | ausente | botão rejeitar + motivo |
+| P1 | Compras | Criar pedido manual | ausente | formulário de pedido sem adjudicação |
+| P1 | Estoque | Reservas manuais | ausente | listar/criar reservas |
+| P1 | Estoque | Liberar reserva | ausente | ação sobre reserva |
+| P1 | Estoque | Consumir reserva | sem UI direta | ação/quantidade e estado |
+| P1 | Financeiro | Rejeitar conciliação | ausente | ação + justificativa |
+| P1 | Financeiro | Conciliação manual explícita | ausente | escolher lançamento e confirmar vínculo |
+| P2 | Estoque | Movimentação bruta /movements | ausente | decidir se deve ser exposta; se sim, tela administrativa |
+| P2 | Financeiro | Grupos DRE | ausente | visualização/configuração se fizer parte do produto |
+| P2 | Financeiro | Ciclo ativo de categorias/centros | parcial | editar/inativar/reativar |
+| P2 | Financeiro | Transferências próprias | parcial | fluxo completo e estado final visível |
+| P2 | Financeiro | Alertas | parcial | E2E e feedback consistente de lido/oculto |
+| P2 | Vendas | Detalhe de faturamento/invoice | parcial | abrir documento e seus vínculos |
+| P2 | Relatórios | Filtros vendas/compras/estoque | parcial | período e demais filtros suportados pela API |
+| P3 | Estoque | Filtros de operações/movimentos | parcial | filtros por produto/local/tipo/origem |
+| P3 | Financeiro | Filtros dashboard/extrato | parcial | período/conta/status conforme API |
 
-1. Completar E2E de ciclo ativo/edição para fornecedor, categoria, produto e conta financeira.
-2. Expor/testar pela UI estorno de estoque e reserva/liberação/consumo quando forem ações de usuário.
-3. Separar E2E de compras por funcionalidade e adicionar rejeição/estados inválidos.
-4. Cobrir edição de orçamento e faturamento total/erros de estoque na UI de vendas.
-5. Cobrir transferência entre contas, alertas, DRE e fluxo de caixa por ação real.
-6. Cobrir filtros e exportações CSV/XLSX/impressão/recibos a partir da interface.
+## Regra de conclusão
+
+Uma linha só pode virar **COBERTO** quando:
+1. a regra de negócio estiver testada;
+2. a persistência/atomicidade aplicável estiver testada;
+3. a API tiver autenticação, validação e contrato testados;
+4. se for função destinada ao usuário, existir caminho real na UI;
+5. o E2E executar esse caminho pela UI;
+6. o E2E verificar o resultado final visível e, quando relevante, o estado persistido/API;
+7. negativos relevantes estiverem cobertos.
+
+O script `check-vertical-coverage.js` continua sendo apenas um gate auxiliar de presença. Ele não substitui esta matriz.
