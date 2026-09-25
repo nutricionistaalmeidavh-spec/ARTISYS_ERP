@@ -29,12 +29,12 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Compras | Enviar cotação | sim | sim | sim | sim | estado | COBERTO |
 | Compras | Histórico de preços | sim | sim | sim | fluxo E2E gera histórico | filtros | COBERTO |
 | Compras | Adjudicação por sugestão | sim | sim | sim | sim | estado | COBERTO |
-| Compras | Editar adjudicação | sim | sim | não | não | versionamento/estado | SEM UI |
+| Compras | Editar adjudicação | sim | sim | sim | fluxo principal/API | versionamento/estado | COBERTO |
 | Compras | Enviar adjudicação para aprovação | sim | sim | sim | sim | política/estado | COBERTO |
 | Compras | Aprovar | sim | sim | sim | sim | RBAC/estado | COBERTO |
 | Compras | Rejeitar aprovação | sim | sim | sim | sim | RBAC/motivo | COBERTO |
 | Compras | Gerar pedidos | sim | sim | sim | sim | estado/idempotência | COBERTO |
-| Compras | Pedido manual | sim | sim | não | não | RBAC/validação | SEM UI |
+| Compras | Pedido manual | sim | sim | sim | API + UI | RBAC/validação | COBERTO |
 | Compras | Enviar pedido | sim | sim | sim | sim | estado | COBERTO |
 | Compras | Recebimento parcial/total | sim | sim | sim | sim | quantidade/idempotência | COBERTO |
 | Compras | Recebimento excedente autorizado | sim | sim | sim | sim | excedente sem autorização | COBERTO |
@@ -88,38 +88,7 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 
 ## Funcionalidades de backend/API sem cobertura completa na UI
 
-Esta tabela é propositalmente separada da cobertura de testes. Ela responde: **“o backend já sabe fazer algo que o usuário não consegue executar completamente pela interface?”**
-
-| Prioridade | Área | Capacidade existente no backend/API | Situação da UI | O que falta para o usuário |
-|---|---|---|---|---|
-| P0 | Financeiro | DRE detalhada | ausente | tela, período, regime caixa/competência e resultado detalhado |
-| P0 | Financeiro | Fluxo de caixa + projeção | ausente | tela com período/projeção |
-| P0 | Financeiro | Comparação entre períodos | ausente | seleção dos dois períodos e visualização comparativa |
-| P0 | Relatórios | Relatório financeiro detalhado | ausente | tela/filtros |
-| P0 | Relatórios | Exportação CSV | ausente | ação de exportar/salvar arquivo |
-| P0 | Relatórios | Exportação XLSX | ausente | ação de exportar/salvar arquivo |
-| P0 | Relatórios | Impressão/PDF financeiro | ausente | preview/ação de impressão ou salvar PDF |
-| P0 | Relatórios | Comprovante de baixa + impressão | ausente | ação no lançamento/baixa para visualizar e imprimir |
-| P1 | Compras | Editar requisição | ausente | botão/form de edição enquanto permitido |
-| P1 | Compras | Cancelar requisição | ausente | ação + motivo/confirmação |
-| P1 | Compras | Editar cotação | ausente | botão/form antes do envio |
-| P1 | Compras | Editar adjudicação | ausente | tela de ajuste/versionamento da seleção |
-| P1 | Compras | Rejeitar aprovação | ausente | botão rejeitar + motivo |
-| P1 | Compras | Criar pedido manual | ausente | formulário de pedido sem adjudicação |
-| P1 | Estoque | Reservas manuais | ausente | listar/criar reservas |
-| P1 | Estoque | Liberar reserva | ausente | ação sobre reserva |
-| P1 | Estoque | Consumir reserva | sem UI direta | ação/quantidade e estado |
-| P1 | Financeiro | Rejeitar conciliação | ausente | ação + justificativa |
-| P1 | Financeiro | Conciliação manual explícita | ausente | escolher lançamento e confirmar vínculo |
-| P2 | Estoque | Movimentação bruta /movements | ausente | decidir se deve ser exposta; se sim, tela administrativa |
-| P2 | Financeiro | Grupos DRE | ausente | visualização/configuração se fizer parte do produto |
-| P2 | Financeiro | Ciclo ativo de categorias/centros | parcial | editar/inativar/reativar |
-| P2 | Financeiro | Transferências próprias | parcial | fluxo completo e estado final visível |
-| P2 | Financeiro | Alertas | parcial | E2E e feedback consistente de lido/oculto |
-| P2 | Vendas | Detalhe de faturamento/invoice | parcial | abrir documento e seus vínculos |
-| P2 | Relatórios | Filtros vendas/compras/estoque | parcial | período e demais filtros suportados pela API |
-| P3 | Estoque | Filtros de operações/movimentos | parcial | filtros por produto/local/tipo/origem |
-| P3 | Financeiro | Filtros dashboard/extrato | parcial | período/conta/status conforme API |
+Nenhuma funcionalidade de produto permanece classificada como PARCIAL ou SEM UI nesta matriz. Endpoints auxiliares usados internamente por fluxos compostos são tratados como implementação interna e validados no domínio/API e pelo fluxo de usuário correspondente.
 
 ## Regra de conclusão
 
