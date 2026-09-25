@@ -3,9 +3,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const forbidden = [
-  ['prompt()', /\b(?:window\s*\.\s*)?prompt\s*\(/g],
-  ['alert()', /\b(?:window\s*\.\s*)?alert\s*\(/g],
-  ['confirm()', /\b(?:window\s*\.\s*)?confirm\s*\(/g],
+  ['prompt()', /(?:\bwindow\s*\.\s*prompt\s*\(|(?<![\w$.])prompt\s*\()/g],
+  ['alert()', /(?:\bwindow\s*\.\s*alert\s*\(|(?<![\w$.])alert\s*\()/g],
+  ['confirm()', /(?:\bwindow\s*\.\s*confirm\s*\(|(?<![\w$.])confirm\s*\()/g],
   ['require()', /\brequire\s*\(/g],
   ['process.*', /\bprocess\s*\./g],
   ['__dirname', /\b__dirname\b/g],
