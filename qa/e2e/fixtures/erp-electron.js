@@ -1,6 +1,6 @@
 'use strict';
 const { _electron } = require('playwright');
-const { mkdtempSync, rmSync } = require('node:fs');
+const { mkdtempSync, rmSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join, resolve } = require('node:path');
 
@@ -8,6 +8,8 @@ async function launchErpElectron() {
   const dir = mkdtempSync(join(tmpdir(), 'artisys-erp-e2e-'));
   const dbPath = join(dir, 'artisys-erp.sqlite');
   const ofxFixture = resolve(__dirname, 'sample.ofx');
+  const documentFixture = join(dir, 'documento-e2e.txt');
+  writeFileSync(documentFixture, 'Documento local de teste E2E', 'utf8');
   let app;
   try {
     app = await _electron.launch({
@@ -18,7 +20,8 @@ async function launchErpElectron() {
         ERP_E2E: '1',
         ERP_E2E_USERNAME: 'admin',
         ERP_E2E_PASSWORD: 'admin123',
-        ERP_E2E_IMPORT_FILE: ofxFixture
+        ERP_E2E_IMPORT_FILE: ofxFixture,
+        ERP_E2E_DOCUMENT_FILE: documentFixture
       }
     });
     const page = await app.firstWindow();
