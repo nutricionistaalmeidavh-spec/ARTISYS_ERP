@@ -2,7 +2,7 @@ name: ERP Verify
 
 on:
   push:
-    branches: [feat/erp-standalone]
+    branches: [main, feat/react-vite-foundation]
   pull_request:
 
 jobs:
