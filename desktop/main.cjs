@@ -5,6 +5,7 @@ const {createErpRuntime}=require('../js/core/erp-runtime');
 const {createLocalServer}=require('../server/local-server');
 const {registerImportBridge}=require('./import-bridge.cjs');
 const {registerDocumentBridge}=require('./document-bridge.cjs');
+const {registerAttachmentBridge}=require('./attachment-bridge.cjs');
 let runtime=null;let localServer=null;let baseUrl=null;let mainWindow=null;
 async function boot(){
   const dbPath=process.env.ERP_DB_PATH?path.resolve(process.env.ERP_DB_PATH):path.join(app.getPath('userData'),'data','artisys-erp.sqlite');
@@ -16,6 +17,7 @@ async function boot(){
   ipcMain.handle('erp:base-url',()=>baseUrl);
   registerImportBridge({ipcMain,app});
   registerDocumentBridge({ipcMain,app});
+  registerAttachmentBridge({ipcMain,app});
   mainWindow=new BrowserWindow({width:1440,height:900,minWidth:1100,minHeight:700,show:false,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   mainWindow.once('ready-to-show',()=>mainWindow.show());
   await mainWindow.loadFile(path.join(__dirname,'renderer','index.html'));
