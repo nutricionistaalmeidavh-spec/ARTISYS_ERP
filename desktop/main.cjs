@@ -18,7 +18,8 @@ async function boot(){
   registerDocumentBridge({ipcMain,app});
   mainWindow=new BrowserWindow({width:1440,height:900,minWidth:1100,minHeight:700,show:false,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   mainWindow.once('ready-to-show',()=>mainWindow.show());
-  await mainWindow.loadFile(path.join(__dirname,'renderer','index.html'));
+  const rendererPath=path.join(__dirname,'..','frontend','dist','index.html');
+  await mainWindow.loadFile(rendererPath);
 }
 app.whenReady().then(boot).catch(error=>{console.error(error);app.exit(1);});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
