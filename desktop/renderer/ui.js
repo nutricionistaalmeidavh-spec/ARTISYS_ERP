@@ -2,6 +2,7 @@
 (()=>{
   const modalRoot=document.getElementById('modal-root');
   const toastRoot=document.getElementById('toast-root');
+  const STATUS={DRAFT:'Rascunho',OPEN:'Em aberto',PARTIAL:'Parcial',SETTLED:'Quitado',CANCELLED:'Cancelado',ACTIVE:'Ativo',INACTIVE:'Inativo',PAUSED:'Pausado',UNMATCHED:'Não conciliado',MATCHED:'Conciliado',ACCEPTED:'Aceito',APPROVED:'Aprovado',PENDING:'Pendente',SUBMITTED:'Enviado',SENT:'Enviado',QUOTING:'Em cotação',ORDERED:'Pedido gerado',RECEIVED:'Recebido',EXCESS:'Com excedente',SUPERSEDED:'Substituído',INVALIDATED:'Invalidado',INVOICE_PARTIAL:'Faturado parcialmente',INVOICED:'Faturado',PAYABLE:'A pagar',RECEIVABLE:'A receber',BANK:'Banco',CARD:'Cartão',CASH:'Caixa',OTHER:'Outro',EXPENSE:'Despesa',INCOME:'Receita'};
   function closeModal(){modalRoot.replaceChildren();modalRoot.hidden=true;}
   function openModal({title,content,actions=[]}={}){
     closeModal();modalRoot.hidden=false;
@@ -16,5 +17,9 @@
   function toast(message,{type='success'}={}){const item=document.createElement('div');item.className=`toast ${type}`;item.textContent=String(message||'');toastRoot.append(item);setTimeout(()=>item.remove(),3500);return item;}
   function setBusy(element,busy){if(!element)return;element.toggleAttribute('disabled',Boolean(busy));element.setAttribute('aria-busy',busy?'true':'false');}
   function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  window.ErpUi={openModal,closeModal,confirm:customConfirm,toast,setBusy,escapeHtml};
+  function statusLabel(value){const key=String(value??'').toUpperCase();return STATUS[key]||String(value??'');}
+  function loading(label='Carregando…'){return `<div class="state-card" role="status">${escapeHtml(label)}</div>`;}
+  function empty(label='Nenhum registro encontrado.'){return `<div class="state-card empty">${escapeHtml(label)}</div>`;}
+  function errorState(message){return `<div class="state-card error" role="alert">${escapeHtml(message||'Não foi possível carregar os dados.')}</div>`;}
+  window.ErpUi={openModal,closeModal,confirm:customConfirm,toast,setBusy,escapeHtml,statusLabel,loading,empty,errorState};
 })();
