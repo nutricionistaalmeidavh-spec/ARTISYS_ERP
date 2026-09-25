@@ -2,7 +2,7 @@ name: ERP Verify
 
 on:
   push:
-    branches: [feat/erp-standalone]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -15,5 +15,6 @@ jobs:
           node-version: '22'
       - run: npm install --ignore-scripts
       - run: npm run verify
+      - run: npm run coverage
       - run: npm rebuild electron
       - run: xvfb-run -a npm run e2e
