@@ -16,23 +16,23 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Estoque | Transferência | sim | sim | sim | sim | saldo insuficiente/idempotência | COBERTO |
 | Estoque | Histórico de operações | sim | sim | sim | sim | filtros não expostos | PARCIAL |
 | Estoque | Reversão de operação | sim | sim | sim | sim | duplo estorno | COBERTO |
-| Estoque | Reservas manuais | sim | sim | não | não | saldo/RBAC | SEM UI |
-| Estoque | Liberar reserva | sim | sim | não | não | estado/RBAC | SEM UI |
+| Estoque | Reservas manuais | sim | sim | sim | sim | saldo/RBAC | COBERTO |
+| Estoque | Liberar reserva | sim | sim | sim | sim | estado/RBAC | COBERTO |
 | Estoque | Consumir reserva | sim | sim | não | indireto via venda | quantidade/estado | SEM UI DIRETA |
 | Compras | Requisição: criar/listar | sim | sim | sim | sim | validação | COBERTO |
-| Compras | Requisição: editar | sim | sim | não | não | estado | SEM UI |
-| Compras | Requisição: cancelar | sim | sim | não | não | estado/motivo | SEM UI |
+| Compras | Requisição: editar | sim | sim | sim | sim | estado | COBERTO |
+| Compras | Requisição: cancelar | sim | sim | sim | sim | estado/motivo | COBERTO |
 | Compras | Iniciar cotação | sim | sim | sim | sim | estado | COBERTO |
 | Compras | Sugestão/scoring | sim | sim | resultado não exibido diretamente | indireto | regras | PARCIAL |
 | Compras | Cotação: criar/listar | sim | sim | sim | sim | validação | COBERTO |
-| Compras | Cotação: editar | sim | sim | não | não | estado | SEM UI |
+| Compras | Cotação: editar | sim | sim | sim | sim | estado | COBERTO |
 | Compras | Enviar cotação | sim | sim | sim | sim | estado | COBERTO |
 | Compras | Histórico de preços | sim | sim | sim | fluxo E2E gera histórico | filtros | COBERTO |
 | Compras | Adjudicação por sugestão | sim | sim | sim | sim | estado | COBERTO |
 | Compras | Editar adjudicação | sim | sim | não | não | versionamento/estado | SEM UI |
 | Compras | Enviar adjudicação para aprovação | sim | sim | sim | sim | política/estado | COBERTO |
 | Compras | Aprovar | sim | sim | sim | sim | RBAC/estado | COBERTO |
-| Compras | Rejeitar aprovação | sim | sim | não | não | RBAC/motivo | SEM UI |
+| Compras | Rejeitar aprovação | sim | sim | sim | pendente E2E dedicado | RBAC/motivo | PARCIAL |
 | Compras | Gerar pedidos | sim | sim | sim | sim | estado/idempotência | COBERTO |
 | Compras | Pedido manual | sim | sim | não | não | RBAC/validação | SEM UI |
 | Compras | Enviar pedido | sim | sim | sim | sim | estado | COBERTO |
@@ -58,15 +58,15 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Financeiro | Centros de custo | sim | sim | criar/listar | sim criar | ciclo ativo não exposto | PARCIAL |
 | Financeiro | Dimensões de lançamento | sim | sim | sim | sim | incompatibilidade categoria | COBERTO |
 | Financeiro | Dashboard | sim | sim | sim React | sim | período/filtros não expostos | PARCIAL |
-| Financeiro | DRE | sim | sim | não como relatório detalhado | não | caixa/competência | SEM UI |
-| Financeiro | Fluxo de caixa | sim | sim | não | não | projeção | SEM UI |
-| Financeiro | Comparativo de períodos | sim | sim | não | não | datas/basis | SEM UI |
+| Financeiro | DRE | sim | sim | sim | sim | caixa/competência | COBERTO |
+| Financeiro | Fluxo de caixa | sim | sim | sim | sim | projeção | COBERTO |
+| Financeiro | Comparativo de períodos | sim | sim | sim | sim | datas/basis | COBERTO |
 | Financeiro | OFX preview/importação | sim | sim | sim | sim | duplicidade | COBERTO |
 | Financeiro | Transações de extrato | sim | sim | sim | sim | filtros não expostos | PARCIAL |
 | Financeiro | Sugestões de conciliação | sim | sim | sim ao abrir conciliação | sim | sem candidato | COBERTO |
 | Financeiro | Aceitar conciliação | sim | sim | sim | sim | idempotência | COBERTO |
-| Financeiro | Rejeitar conciliação | sim | sim | não | não | idempotência | SEM UI |
-| Financeiro | Conciliação manual | sim | sim | não explícita | não | seleção inválida | SEM UI |
+| Financeiro | Rejeitar conciliação | sim | sim | sim | pendente E2E dedicado | idempotência | PARCIAL |
+| Financeiro | Conciliação manual | sim | sim | sim | pendente E2E dedicado | seleção inválida | PARCIAL |
 | Financeiro | Sugestão transferência própria | sim | sim | botão revisar | cobertura parcial | pareamento | PARCIAL |
 | Financeiro | Confirmar transferência própria | sim | sim | fluxo existe | não dedicado | idempotência | PARCIAL |
 | Financeiro | Recorrência criar/listar | sim | sim | sim | sim | datas | COBERTO |
@@ -78,10 +78,10 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Relatórios | Vendas | sim | sim | sim React | sim render | filtros/basis não expostos | PARCIAL |
 | Relatórios | Compras | sim | sim | sim React | sim render | filtros não expostos | PARCIAL |
 | Relatórios | Estoque | sim | sim | sim React | sim render | filtros não expostos | PARCIAL |
-| Relatórios | Financeiro detalhado | sim | sim | não | não | filtros | SEM UI |
-| Relatórios | Exportar financeiro CSV | sim | sim | não | não | IO/conteúdo | SEM UI |
-| Relatórios | Exportar financeiro XLSX | sim | sim | não | não | IO/conteúdo | SEM UI |
-| Relatórios | Impressão/PDF financeiro | sim | sim | não | não | conteúdo | SEM UI |
+| Relatórios | Financeiro detalhado | sim | sim | sim | sim | filtros ainda básicos | PARCIAL |
+| Relatórios | Exportar financeiro CSV | sim | sim | sim | sim | conteúdo | COBERTO |
+| Relatórios | Exportar financeiro XLSX | sim | sim | sim | sim | conteúdo | COBERTO |
+| Relatórios | Impressão/PDF financeiro | sim | sim | sim | sim | conteúdo | COBERTO |
 | Relatórios | Comprovante de baixa | sim | sim | não | não | settlement inválido | SEM UI |
 | Relatórios | Imprimir comprovante | sim | sim | não | não | settlement inválido | SEM UI |
 | Sistema | Health/local-first | sim | sim | sim | sim | indisponibilidade | COBERTO |
