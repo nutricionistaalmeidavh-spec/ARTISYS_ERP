@@ -1,0 +1,13 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const os=require('node:os');
+const path=require('node:path');
+const {DatabaseSync}=require('node:sqlite');
+const {createBackupService}=require('../js/core/backup/backup-service');
+const {createSystemLogger}=require('../js/core/observability/system-logger');
+const {createSystemHealth}=require('../js/core/observability/system-health');
+const {createDiagnosticPackage}=require('../js/core/observability/diagnostic-package');
+test('backup creates consistent sqlite snapshot and restore can seed a new database',()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'erp-backup-'));const dbPath=path.join(dir,'erp.sqlite');const db=new DatabaseSync(dbPath);db.exec("CREATE TABLE customers(id TEXT PRIMARY KEY,name TEXT); INSERT INTO customers VALUES('c1','Original')");const backups=createBackupService({db,dbPath,backupDir:path.join(dir,'backups'),now:()=> '2026-09-25T10:00:00.000Z'});const backup=backups.createBackup('manual');db.exec("UPDATE customers SET name='Modified' WHERE id='c1'");db.close();const restored=path.join(dir,'restored.sqlite');backups.restoreBackup({backupPath:backup.path,targetPath:restored});const check=new DatabaseSync(restored);assert.equal(check.prepare('SELECT name FROM customers WHERE id=?').get('c1').name,'Original');check.close();});
+test('diagnostic package sanitizes credentials, tokens and raw OFX content',()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'erp-diag-'));const dbPath=path.join(dir,'erp.sqlite');const db=new DatabaseSync(dbPath);db.exec("CREATE TABLE users(id TEXT); INSERT INTO users VALUES('u1')");const logger=createSystemLogger({filePath:path.join(dir,'system.log'),now:()=> '2026-09-25T10:00:00.000Z'});logger.info('auth.failure',{email:'a@b.com',passwordHash:'secret-hash',bearerToken:'secret-token',ofx:'<OFX>secret-bank-data</OFX>'});const health=createSystemHealth({db,dbPath});const diagnostics=createDiagnosticPackage({health,logger,now:()=> '2026-09-25T10:00:01.000Z'});const pkg=diagnostics.build({bearer:'another-secret',password:'pw',rawOfx:'<OFX>raw</OFX>'});const text=JSON.stringify(pkg);assert.doesNotMatch(text,/secret-hash|secret-token|secret-bank-data|another-secret|<OFX>raw|"pw"/);assert.match(text,/artisys-erp/);assert.equal(pkg.health.database.ok,true);db.close();});
