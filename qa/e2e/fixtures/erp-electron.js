@@ -7,6 +7,7 @@ const { join, resolve } = require('node:path');
 async function launchErpElectron() {
   const dir = mkdtempSync(join(tmpdir(), 'artisys-erp-e2e-'));
   const dbPath = join(dir, 'artisys-erp.sqlite');
+  const ofxFixture = resolve(__dirname, 'sample.ofx');
   let app;
   try {
     app = await _electron.launch({
@@ -16,7 +17,8 @@ async function launchErpElectron() {
         ERP_DB_PATH: dbPath,
         ERP_E2E: '1',
         ERP_E2E_USERNAME: 'admin',
-        ERP_E2E_PASSWORD: 'admin123'
+        ERP_E2E_PASSWORD: 'admin123',
+        ERP_E2E_IMPORT_FILE: ofxFixture
       }
     });
     const page = await app.firstWindow();
