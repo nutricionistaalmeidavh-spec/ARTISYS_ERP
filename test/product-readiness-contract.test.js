@@ -13,6 +13,7 @@ test('CI targets main and package exposes real lint and coverage gates',()=>{
   assert.match(win,/branches:\s*\[main\]/);
   assert.match(pkg.scripts.lint||'',/eslint/);
   assert.ok(pkg.scripts.coverage,'coverage script missing');
+  assert.match(pkg.scripts.e2e||'',/--test-concurrency=1/,'Electron E2E must run serially to avoid CI resource contention');
   assert.ok(fs.existsSync('eslint.config.js'),'eslint.config.js missing');
   assert.ok(fs.existsSync('scripts/check-coverage.js'),'coverage gate missing');
 });
