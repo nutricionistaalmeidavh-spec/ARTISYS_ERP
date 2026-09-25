@@ -2,7 +2,7 @@
 (()=>{
   const modalRoot=document.getElementById('modal-root');
   const toastRoot=document.getElementById('toast-root');
-  const STATUS={DRAFT:'Rascunho',OPEN:'Em aberto',PARTIAL:'Parcial',SETTLED:'Quitado',CANCELLED:'Cancelado',ACTIVE:'Ativo',INACTIVE:'Inativo',PAUSED:'Pausado',UNMATCHED:'Não conciliado',MATCHED:'Conciliado',ACCEPTED:'Aceito',APPROVED:'Aprovado',PENDING:'Pendente',SUBMITTED:'Enviado',SENT:'Enviado',QUOTING:'Em cotação',ORDERED:'Pedido gerado',RECEIVED:'Recebido',EXCESS:'Com excedente',SUPERSEDED:'Substituído',INVALIDATED:'Invalidado',INVOICE_PARTIAL:'Faturado parcialmente',INVOICED:'Faturado',PAYABLE:'A pagar',RECEIVABLE:'A receber',BANK:'Banco',CARD:'Cartão',CASH:'Caixa',OTHER:'Outro',EXPENSE:'Despesa',INCOME:'Receita'};
+  const STATUS={DRAFT:'Rascunho',OPEN:'Em aberto',PARTIAL:'Parcial',SETTLED:'Quitado',CANCELLED:'Cancelado',ACTIVE:'Ativo',INACTIVE:'Inativo',PAUSED:'Pausado',UNMATCHED:'Não conciliado',MATCHED:'Conciliado',ACCEPTED:'Aceito',APPROVED:'Aprovado',PENDING:'Pendente',SUBMITTED:'Enviado',SENT:'Enviado',QUOTING:'Em cotação',ORDERED:'Pedido gerado',RECEIVED:'Recebido',EXCESS:'Com excedente',SUPERSEDED:'Substituído',INVALIDATED:'Invalidado',INVOICE_PARTIAL:'Faturado parcialmente',INVOICED:'Faturado',PAYABLE:'A pagar',RECEIVABLE:'A receber',BANK:'Banco',CARD:'Cartão',CASH:'Caixa',OTHER:'Outro',EXPENSE:'Despesa',INCOME:'Receita',ADMIN:'Administrador',MANAGER:'Gerente',DIRECTOR:'Diretor',OPERATOR:'Operador',LOW:'Baixa',MEDIUM:'Média',HIGH:'Alta',CRITICAL:'Crítica',INFO:'Informativo',WARNING:'Atenção',ERROR:'Erro'};
   function closeModal(){modalRoot.replaceChildren();modalRoot.hidden=true;}
   function openModal({title,content,actions=[]}={}){
     closeModal();modalRoot.hidden=false;
