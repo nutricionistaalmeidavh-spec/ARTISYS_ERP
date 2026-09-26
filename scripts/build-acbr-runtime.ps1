@@ -5,9 +5,9 @@ $AcbrCommit = '2784a56ad10f60b9fa412c8d172e495e9d93a0e7'
 $FortesCommit = '888e387faca5a691b246a6b493776b8435be59f3'
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $Target = Join-Path $RepoRoot 'fiscal-runtime\acbr'
-$WorkRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('artisys-acbr-build-' + [Guid]::NewGuid().ToString('N'))
+$WorkRoot = Join-Path $env:RUNNER_TEMP ('acbr-' + [Guid]::NewGuid().ToString('N').Substring(0,8))
 $AcbrRoot = Join-Path $WorkRoot 'ACBr'
-$FortesRoot = Join-Path $WorkRoot 'fortesreport-ce'
+$FortesRoot = Join-Path $WorkRoot 'fortes'
 
 function Invoke-Checked([string]$File, [string[]]$Arguments) {
   Write-Host "> $File $($Arguments -join ' ')"
@@ -30,13 +30,18 @@ try {
   if (-not $LazBuild) { throw 'lazbuild nao encontrado. Instale Lazarus/FPC no runner antes de compilar o ACBr.' }
 
   New-Item -ItemType Directory -Force -Path $WorkRoot | Out-Null
-  Invoke-Checked 'git' @('clone','--no-tags','https://github.com/frones/ACBr.git',$AcbrRoot)
-  Invoke-Checked 'git' @('-C',$AcbrRoot,'checkout','--detach',$AcbrCommit)
+  Invoke-Checked 'git' @('-c','core.longpaths=true','clone','--filter=blob:none','--no-checkout','--no-tags','--depth','1','https://github.com/frones/ACBr.git',$AcbrRoot)
+  Invoke-Checked 'git' @('-C',$AcbrRoot,'config','core.longpaths','true')
+  Invoke-Checked 'git' @('-C',$AcbrRoot,'sparse-checkout','init','--cone')
+  Invoke-Checked 'git' @('-C',$AcbrRoot,'sparse-checkout','set','Projetos/ACBrMonitorPLUS','Pacotes/Lazarus','Fontes','DLLs','Exemplos/ACBrDFe/Schemas/NFe')
+  Invoke-Checked 'git' @('-C',$AcbrRoot,'fetch','--depth','1','origin',$AcbrCommit)
+  Invoke-Checked 'git' @('-C',$AcbrRoot,'checkout','--detach','FETCH_HEAD')
   $actualAcbr = (& git -C $AcbrRoot rev-parse HEAD).Trim()
   if ($actualAcbr -ne $AcbrCommit) { throw "Commit ACBr inesperado: $actualAcbr" }
 
-  Invoke-Checked 'git' @('clone','--no-tags','https://github.com/fortesinformatica/fortesreport-ce.git',$FortesRoot)
-  Invoke-Checked 'git' @('-C',$FortesRoot,'checkout','--detach',$FortesCommit)
+  Invoke-Checked 'git' @('-c','core.longpaths=true','clone','--no-tags','--depth','1','https://github.com/fortesinformatica/fortesreport-ce.git',$FortesRoot)
+  Invoke-Checked 'git' @('-C',$FortesRoot,'fetch','--depth','1','origin',$FortesCommit)
+  Invoke-Checked 'git' @('-C',$FortesRoot,'checkout','--detach','FETCH_HEAD')
 
   $fortesPackage = Get-ChildItem $FortesRoot -Filter 'frce.lpk' -Recurse | Select-Object -First 1
   if (-not $fortesPackage) { throw 'Pacote Lazarus do FortesReport nao encontrado.' }
