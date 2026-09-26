@@ -41,6 +41,8 @@ const {createSalesAdminService}=require('../domains/sales-admin/sales-admin-serv
 const {createRetailOperationsService}=require('../domains/sales-admin/retail-operations-service');
 const {extendRetailWithServiceProducts}=require('../domains/services/service-catalog-extension');
 const {createServiceOrderService}=require('../domains/services/service-order-service');
+const {createManufacturingService}=require('../domains/manufacturing/manufacturing-service');
+const {createMrpService}=require('../domains/manufacturing/mrp-service');
 const {createFiscalService}=require('../domains/tax/tax-service');
 const {createReportingService}=require('../domains/reports/reporting-service');
 const {createBusinessIntelligenceService}=require('../domains/reports/business-intelligence-service');
@@ -84,6 +86,8 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const retailBase=createRetailOperationsService({...common,catalog,contacts,inventory,finance,salesAdmin});
  const retail=extendRetailWithServiceProducts({...common,catalog,retail:retailBase});
  const serviceOrders=createServiceOrderService({...common,contacts,catalog,inventory,inventoryReservations,finance});
+ const manufacturing=createManufacturingService({...common,catalog,inventory,inventoryReservations,retail});
+ const mrp=createMrpService({...common,inventory,inventoryReservations,procurementRequisitions,manufacturing});
  const fiscal=createFiscalService({...common,catalog,retail,salesAdmin});
  const reports=createReportingService({db,now});
  const operations=createOperationsSuite(common);
@@ -100,6 +104,6 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const backup=persistent?createBackupService({db,dbPath:resolvedDbPath,backupDir:path.join(path.dirname(resolvedDbPath),'backups'),now}):null;
  logger.info('runtime.started',{persistent});
  let closed=false;
- return{db,events,auth,settings,companies,documents,integrations,contacts,catalog,pagedQueries,inventory,inventoryLogistics,inventoryOperations,inventoryDepth,inventoryReservations,financeDimensions,finance,supplierCredits,procurement,procurementRequisitions,procurementQuotations,procurementPricing,procurementScoring,procurementApprovals,procurementAwards,procurementReturns,salesAdmin,retail,serviceOrders,fiscal,reports,operations,businessIntelligence,financeDocuments,financeManagement,bankStatements,financeReconciliation,financeRecurrences,financeAlerts,backup,logger,health,diagnostics,close(){if(closed)return;closed=true;logger.info('runtime.stopping');db.close();}};
+ return{db,events,auth,settings,companies,documents,integrations,contacts,catalog,pagedQueries,inventory,inventoryLogistics,inventoryOperations,inventoryDepth,inventoryReservations,financeDimensions,finance,supplierCredits,procurement,procurementRequisitions,procurementQuotations,procurementPricing,procurementScoring,procurementApprovals,procurementAwards,procurementReturns,salesAdmin,retail,serviceOrders,manufacturing,mrp,fiscal,reports,operations,businessIntelligence,financeDocuments,financeManagement,bankStatements,financeReconciliation,financeRecurrences,financeAlerts,backup,logger,health,diagnostics,close(){if(closed)return;closed=true;logger.info('runtime.stopping');db.close();}};
 }
 module.exports={createErpRuntime};
