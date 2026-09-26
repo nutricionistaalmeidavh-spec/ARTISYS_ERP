@@ -14,6 +14,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install Lazarus/FPC for ACBr
+        shell: pwsh
+        run: choco install lazarus -y --no-progress
+      - name: Build bundled ACBr runtime
+        shell: pwsh
+        run: ./scripts/build-acbr-runtime.ps1
+      - name: Validate bundled ACBr runtime
+        shell: pwsh
+        run: |
+          $exe = Get-Item fiscal-runtime/acbr/ACBrMonitorPLUS.exe -ErrorAction Stop
+          if ($exe.Length -lt 100KB) { throw 'Bundled ACBrMonitorPLUS.exe unexpectedly small' }
+          if (!(Test-Path fiscal-runtime/acbr/Schemas/NFe)) { throw 'Bundled NFe schemas missing' }
+          if (!(Test-Path fiscal-runtime/acbr/ACBR-LICENSE.TXT)) { throw 'Bundled ACBr license missing' }
+          if (!(Test-Path fiscal-runtime/acbr/SOURCE.txt)) { throw 'Bundled ACBr source notice missing' }
       - run: npm install
       - run: npm run release:check
       - run: npm run dist:win
