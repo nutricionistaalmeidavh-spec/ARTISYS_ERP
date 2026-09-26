@@ -22,7 +22,7 @@ function createInventoryRouter({runtime,sessions,bodyLimitBytes=1024*1024}={}){
   let m;if((m=pathMatch(p,'/api/v1/inventory/cycle-counts/:id'))&&req.method==='GET'){json(res,200,runtime.inventoryDepth.getCycle(m.id));return true;}
   if((m=pathMatch(p,'/api/v1/inventory/cycle-counts/:id/count'))&&req.method==='POST'){requireActor(req,sessions,['admin','manager']);json(res,200,runtime.inventoryDepth.count({...(await body(req,bodyLimitBytes)),cycleCountId:m.id},actor));return true;}
   if((m=pathMatch(p,'/api/v1/inventory/cycle-counts/:id/close'))&&req.method==='POST'){requireActor(req,sessions,['admin','manager']);json(res,200,runtime.inventoryDepth.closeCycle(m.id,actor));return true;}
-  let m;if((m=pathMatch(p,'/api/v1/inventory/operations/:id/reverse'))&&req.method==='POST'){requireActor(req,sessions,['admin','manager']);const result=runtime.inventoryOperations.reverse(m.id,await body(req,bodyLimitBytes),actor);await flushEvents();json(res,201,result);return true;}
+  if((m=pathMatch(p,'/api/v1/inventory/operations/:id/reverse'))&&req.method==='POST'){requireActor(req,sessions,['admin','manager']);const result=runtime.inventoryOperations.reverse(m.id,await body(req,bodyLimitBytes),actor);await flushEvents();json(res,201,result);return true;}
   if((m=pathMatch(p,'/api/v1/inventory/reservations/:id/release'))&&req.method==='POST'){requireActor(req,sessions,['admin','manager']);json(res,200,runtime.inventoryLogistics.release(m.id,actor));return true;}
   if((m=pathMatch(p,'/api/v1/inventory/reservations/:id/consume'))&&req.method==='POST'){requireActor(req,sessions,['admin','manager']);const data=await body(req,bodyLimitBytes);json(res,200,runtime.inventoryLogistics.consume(m.id,actor,{quantity:data.quantity??null}));return true;}
   return false;
