@@ -1,0 +1,22 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const{launchErpElectron}=require('./fixtures/erp-electron');
+async function login(p){await p.getByTestId('login-username').fill('admin');await p.getByTestId('login-password').fill('admin123');await p.getByTestId('login-submit').click();await p.getByTestId('view-dashboard').waitFor({state:'visible'});}
+async function withErp(fn){const erp=await launchErpElectron();try{await fn(erp.page,erp);}finally{await erp.close();}}
+
+test('login rejects invalid credentials and keeps login visible',()=>withErp(async p=>{await p.getByTestId('login-username').fill('admin');await p.getByTestId('login-password').fill('senha-invalida');await p.getByTestId('login-submit').click();await p.getByRole('alert').waitFor();assert.ok((await p.getByRole('alert').innerText()).trim().length>0);await p.getByTestId('login-submit').waitFor({state:'visible'});}));
+test('dashboard exposes four financial metrics',()=>withErp(async p=>{await login(p);for(const x of ['A receber','A pagar','Caixa realizado','Resultado'])await p.getByText(x,{exact:true}).waitFor();}));
+test('sidebar marks dashboard active after login',()=>withErp(async p=>{await login(p);assert.match(await p.locator('button[data-view="dashboard"]').getAttribute('class')||'',/active/);}));
+test('cadastros route mounts master-data root',()=>withErp(async p=>{await login(p);await p.locator('button[data-view="cadastros"]').click();await p.getByTestId('cadastros-root').waitFor();}));
+test('estoque route mounts inventory root',()=>withErp(async p=>{await login(p);await p.locator('button[data-view="estoque"]').click();await p.getByTestId('inventory-root').waitFor();}));
+test('compras route mounts procurement root',()=>withErp(async p=>{await login(p);await p.locator('button[data-view="compras"]').click();await p.getByTestId('procurement-root').waitFor();}));
+test('vendas route mounts sales root',()=>withErp(async p=>{await login(p);await p.locator('button[data-view="vendas"]').click();await p.getByTestId('sales-root').waitFor();}));
+test('financeiro route mounts finance root',()=>withErp(async p=>{await login(p);await p.locator('button[data-view="financeiro"]').click();await p.getByTestId('finance-root').waitFor();}));
+test('reports remain available after navigating away and back',()=>withErp(async p=>{await login(p);await p.locator('button[data-view="relatorios"]').click();await p.locator('.report-grid').waitFor();await p.locator('button[data-view="dashboard"]').click();await p.locator('button[data-view="relatorios"]').click();await p.locator('.report-grid').waitFor();assert.equal(await p.locator('.report-grid pre').count(),3);}));
+test('settings remains available after navigating away and back',()=>withErp(async p=>{await login(p);await p.locator('button[data-view="configuracoes"]').click();await p.getByText('Local-first',{exact:true}).waitFor();await p.locator('button[data-view="dashboard"]').click();await p.locator('button[data-view="configuracoes"]').click();await p.getByText('Local-first',{exact:true}).waitFor();}));
+test('sidebar active state follows selected module',()=>withErp(async p=>{await login(p);for(const v of ['cadastros','estoque','compras','vendas','financeiro','relatorios','configuracoes']){const b=p.locator(`button[data-view="${v}"]`);await b.click();assert.match(await b.getAttribute('class')||'',/active/);}}));
+test('topbar title follows selected module',()=>withErp(async p=>{await login(p);for(const [v,title] of [['cadastros','Cadastros'],['estoque','Estoque'],['compras','Compras'],['vendas','Vendas'],['financeiro','Financeiro'],['relatorios','Relatórios'],['configuracoes','Configurações']]){await p.locator(`button[data-view="${v}"]`).click();await p.locator('.topbar h2').getByText(title,{exact:true}).waitFor();}}));
+test('logged user identity is displayed in shell',()=>withErp(async p=>{await login(p);assert.match(await p.locator('.topbar').innerText(),/admin/i);}));
+test('logout clears authenticated shell',()=>withErp(async p=>{await login(p);await p.getByRole('button',{name:'Sair'}).click();await p.getByTestId('login-submit').waitFor();assert.equal(await p.locator('.app-shell').count(),0);}));
+test('relogin restores dashboard after logout',()=>withErp(async p=>{await login(p);await p.getByRole('button',{name:'Sair'}).click();await p.getByTestId('login-submit').waitFor();await login(p);await p.getByTestId('view-dashboard').waitFor();}));

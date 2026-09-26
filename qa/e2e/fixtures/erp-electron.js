@@ -1,10 +1,13 @@
 'use strict';
 const { _electron } = require('playwright');
-const { mkdtempSync, rmSync, writeFileSync } = require('node:fs');
+const { mkdtempSync, rmSync, writeFileSync, existsSync } = require('node:fs');
+const { execFileSync } = require('node:child_process');
 const { tmpdir } = require('node:os');
 const { join, resolve } = require('node:path');
 
 async function launchErpElectron() {
+  const root = resolve(__dirname, '..', '..', '..');
+  if (!existsSync(join(root, 'frontend', 'dist', 'index.html'))) execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'frontend:build'], { cwd: root, stdio: 'inherit' });
   const dir = mkdtempSync(join(tmpdir(), 'artisys-erp-e2e-'));
   const dbPath = join(dir, 'artisys-erp.sqlite');
   const ofxFixture = resolve(__dirname, 'sample.ofx');
@@ -13,7 +16,7 @@ async function launchErpElectron() {
   let app;
   try {
     app = await _electron.launch({
-      args: [resolve(__dirname, '..', '..', '..')],
+      args: [root],
       env: {
         ...process.env,
         ERP_DB_PATH: dbPath,
@@ -31,7 +34,7 @@ async function launchErpElectron() {
       dbPath,
       dir,
       async close() {
-        try { await app.close(); } finally { rmSync(dir, { recursive: true, force: true }); }
+        try { await Promise.race([app.close(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Electron close timeout')),5000))]); } catch { try { const p=app.process(); if(p&&!p.killed)p.kill('SIGKILL'); } catch {} } finally { rmSync(dir, { recursive: true, force: true }); }
       }
     };
   } catch (error) {

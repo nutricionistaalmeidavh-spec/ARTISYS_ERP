@@ -1,0 +1,1 @@
+export function Loading(){return <div className="panel">Carregando…</div>}

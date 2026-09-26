@@ -1,0 +1,1 @@
+import type{ReactNode}from'react';export function Metric({name,value}:{name:string;value:ReactNode}){return <div className="metric"><span>{name}</span><strong>{value}</strong></div>}
