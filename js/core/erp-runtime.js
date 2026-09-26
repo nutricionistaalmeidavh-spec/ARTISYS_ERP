@@ -26,6 +26,7 @@ const {createTraceabilityService}=require('../domains/traceability/traceability-
 const {createCommercialFactService}=require('../domains/traceability/commercial-fact-service');
 const {extendRetailWithTraceability}=require('../domains/traceability/retail-traceability-extension');
 const {extendServiceOrdersWithTraceability}=require('../domains/traceability/service-order-traceability-extension');
+const {extendManufacturingWithTraceability}=require('../domains/traceability/manufacturing-traceability-extension');
 const {createPagedQueryService}=require('../domains/shared/paged-query-service');
 const {createFinanceDimensionsService}=require('../domains/finance/finance-dimensions');
 const {createFinanceService}=require('../domains/finance/finance-service');
@@ -96,7 +97,8 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const retail=extendRetailWithServiceProducts({...common,catalog,retail:retailTraced});
  const serviceOrdersBase=createServiceOrderService({...common,contacts,catalog,inventory,inventoryReservations,finance});
  const serviceOrders=extendServiceOrdersWithTraceability({...common,serviceOrders:serviceOrdersBase,costLedger,commercialFacts});
- const manufacturing=createManufacturingService({...common,catalog,inventory,inventoryReservations,retail});
+ const manufacturingBase=createManufacturingService({...common,catalog,inventory,inventoryReservations,retail});
+ const manufacturing=extendManufacturingWithTraceability({...common,manufacturing:manufacturingBase,costLedger});
  const mrp=createMrpService({...common,inventory,inventoryReservations,procurementRequisitions,manufacturing});
  const fiscal=createFiscalService({...common,catalog,retail,salesAdmin});
  const reports=createReportingService({db,now});
