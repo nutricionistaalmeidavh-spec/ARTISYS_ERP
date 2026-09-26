@@ -1,12 +1,12 @@
 'use strict';
 const path=require('node:path');
-const {app,BrowserWindow,ipcMain}=require('electron');
+const {app,BrowserWindow,ipcMain,shell}=require('electron');
 const {createErpRuntime}=require('../js/core/erp-runtime');
 const {createLocalServer}=require('../server/local-server');
 const {registerImportBridge}=require('./import-bridge.cjs');
 const {registerDocumentBridge}=require('./document-bridge.cjs');
-const {registerAttachmentBridge}=require('./attachment-bridge.cjs');
-let runtime=null;let localServer=null;let baseUrl=null;let mainWindow=null;
+const {registerAttachmentBridge}=require('./attachment-bridge.cjs');const {createUpdateService}=require('./update-service.cjs');
+let runtime=null;let localServer=null;let baseUrl=null;let mainWindow=null;let updater=null;
 async function boot(){
   const dbPath=process.env.ERP_DB_PATH?path.resolve(process.env.ERP_DB_PATH):path.join(app.getPath('userData'),'data','artisys-erp.sqlite');
   runtime=createErpRuntime({dbPath});
@@ -15,6 +15,7 @@ async function boot(){
   const address=await localServer.start();
   baseUrl=`http://127.0.0.1:${address.port}`;
   ipcMain.handle('erp:base-url',()=>baseUrl);
+  updater=createUpdateService({app,shell});ipcMain.handle('erp:update-status',()=>updater.status());ipcMain.handle('erp:update-check',()=>updater.check());ipcMain.handle('erp:update-download',()=>updater.download());ipcMain.handle('erp:update-install',()=>updater.install());setTimeout(()=>updater.check().catch(()=>{}),5000);
   registerImportBridge({ipcMain,app});
   registerDocumentBridge({ipcMain,app});
   registerAttachmentBridge({ipcMain,app});

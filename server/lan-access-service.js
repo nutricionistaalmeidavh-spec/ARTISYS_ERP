@@ -1,0 +1,12 @@
+'use strict';
+const os=require('node:os');const {randomBytes}=require('node:crypto');
+function privateIpv4(){const out=[];for(const list of Object.values(os.networkInterfaces()))for(const x of list||[])if(x.family==='IPv4'&&!x.internal)out.push(x.address);return out;}
+function isPrivate(ip){return /^10\./.test(ip)||/^192\.168\./.test(ip)||(/^172\.(1[6-9]|2\d|3[01])\./.test(ip))||ip==='127.0.0.1';}
+function createLanAccessService({now=()=>Date.now(),pairTtlMs=10*60*1000}={}){const codes=new Map(),devices=new Map();
+ function createPairing(actor){if(!['admin','manager'].includes(String(actor?.role)))throw new Error('Permissao insuficiente.');const code=String(Math.floor(100000+Math.random()*900000)),expiresAt=Number(now())+pairTtlMs;codes.set(code,{companyId:actor.companyId||'default',createdBy:actor.userId,expiresAt});return{code,expiresAt};}
+ function redeem(code,{deviceName,remoteAddress}={}){const row=codes.get(String(code));if(!row||row.expiresAt<=Number(now()))throw new Error('Codigo de pareamento invalido ou expirado.');if(remoteAddress&&!isPrivate(String(remoteAddress).replace(/^::ffff:/,'')))throw new Error('Pareamento permitido somente na rede local.');codes.delete(String(code));const token=randomBytes(32).toString('hex'),id=randomBytes(12).toString('hex');devices.set(token,{id,name:String(deviceName||'Terminal ERP').slice(0,80),companyId:row.companyId,pairedBy:row.createdBy,pairedAt:new Date(Number(now())).toISOString(),lastSeenAt:new Date(Number(now())).toISOString(),revoked:false});return{deviceToken:token,device:devices.get(token)};}
+ function resolve(token){const d=devices.get(String(token||''));if(!d||d.revoked)return null;d.lastSeenAt=new Date(Number(now())).toISOString();return{...d};}
+ function list(actor){if(!['admin','manager'].includes(String(actor?.role)))throw new Error('Permissao insuficiente.');return[...devices.values()].filter(x=>x.companyId===String(actor.companyId||'default')).map(({...x})=>x);}
+ function revoke(id,actor){if(!['admin','manager'].includes(String(actor?.role)))throw new Error('Permissao insuficiente.');for(const d of devices.values())if(d.id===String(id)&&d.companyId===String(actor.companyId||'default')){d.revoked=true;return{...d};}throw new Error('Dispositivo nao encontrado.');}
+ return{createPairing,redeem,resolve,list,revoke,addresses:privateIpv4};}
+module.exports={createLanAccessService,isPrivate};

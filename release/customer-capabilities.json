@@ -5,13 +5,55 @@
   "requiresInternetForCore": false,
   "requiresPaidService": false,
   "capabilities": [
-    {"id":"core-security","name":"Usuários, autenticação, perfis e auditoria","status":"available"},
-    {"id":"master-data","name":"Clientes, fornecedores, produtos e categorias","status":"available"},
-    {"id":"inventory","name":"Estoque, locais, movimentações e reservas","status":"available"},
-    {"id":"procurement","name":"Pedidos de compra, recebimentos, custo e contas a pagar","status":"available"},
-    {"id":"sales-admin","name":"Orçamentos, pedidos e faturamento administrativo","status":"available"},
-    {"id":"finance","name":"Contas a pagar e receber, DRE, fluxo, OFX, conciliação, recorrências e alertas","status":"available"},
-    {"id":"reports","name":"Relatórios de vendas administrativas, compras, estoque e financeiro","status":"available"},
-    {"id":"backup","name":"Backup, restauração, health check, logs e diagnóstico sanitizado","status":"available"}
+    {
+      "id": "core-security",
+      "name": "Usuários, autenticação, perfis e auditoria",
+      "status": "available"
+    },
+    {
+      "id": "master-data",
+      "name": "Clientes, fornecedores, produtos e categorias",
+      "status": "available"
+    },
+    {
+      "id": "inventory",
+      "name": "Estoque, locais, movimentações e reservas",
+      "status": "available"
+    },
+    {
+      "id": "procurement",
+      "name": "Pedidos de compra, recebimentos, custo e contas a pagar",
+      "status": "available"
+    },
+    {
+      "id": "sales-admin",
+      "name": "Orçamentos, pedidos e faturamento administrativo",
+      "status": "available"
+    },
+    {
+      "id": "finance",
+      "name": "Contas a pagar e receber, DRE, fluxo, OFX, conciliação, recorrências e alertas",
+      "status": "available"
+    },
+    {
+      "id": "reports",
+      "name": "Relatórios de vendas administrativas, compras, estoque e financeiro",
+      "status": "available"
+    },
+    {
+      "id": "backup",
+      "name": "Backup, restauração, health check, logs e diagnóstico sanitizado",
+      "status": "available"
+    },
+    {
+      "id": "lan-multiuser",
+      "name": "Multiusuário LAN com servidor autoritativo, API e pareamento de dispositivos",
+      "status": "available"
+    },
+    {
+      "id": "auto-update",
+      "name": "Atualização Windows opcional com manifesto e validação SHA-256",
+      "status": "available"
+    }
   ]
 }
