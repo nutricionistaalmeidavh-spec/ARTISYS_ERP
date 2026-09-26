@@ -47,6 +47,7 @@ const {createMrpService}=require('../domains/manufacturing/mrp-service');
 const {createFiscalService}=require('../domains/tax/tax-service');
 const {createFiscalRuntimeService}=require('../domains/tax/fiscal-runtime-service');
 const {createFiscalInteroperabilityService}=require('../domains/tax/fiscal-interoperability-service');
+const {extendFiscalProcurementInteroperability}=require('../domains/tax/fiscal-procurement-interoperability');
 const {createReportingService}=require('../domains/reports/reporting-service');
 const {createBusinessIntelligenceService}=require('../domains/reports/business-intelligence-service');
 const {createFinanceDocumentService}=require('../domains/reports/finance-document-service');
@@ -94,7 +95,8 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const manufacturing=createManufacturingService({...common,catalog,inventory,inventoryReservations,retail});
  const mrp=createMrpService({...common,inventory,inventoryReservations,procurementRequisitions,manufacturing});
  const fiscal=createFiscalService({...common,catalog,retail,salesAdmin});
- const fiscalInteroperability=createFiscalInteroperabilityService({...common,fiscal,retail,salesAdmin,serviceOrders,catalog,contacts});
+ const fiscalInteroperabilityBase=createFiscalInteroperabilityService({...common,fiscal,retail,salesAdmin,serviceOrders,catalog,contacts});
+ const fiscalInteroperability=extendFiscalProcurementInteroperability({...common,fiscal,catalog,contacts,base:fiscalInteroperabilityBase});
  const fiscalRuntime=createFiscalRuntimeService({...common,fiscal,catalog,contacts,retail,salesAdmin,...(fiscalRuntimeConfig||{})});
  const reports=createReportingService({db,now});
  const operations=createOperationsSuite(common);
