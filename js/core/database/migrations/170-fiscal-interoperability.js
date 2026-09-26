@@ -22,6 +22,7 @@ CREATE TABLE fiscal_profiles(
  csosn TEXT,icms_cst TEXT,pis_cst TEXT NOT NULL,cofins_cst TEXT NOT NULL,unit TEXT NOT NULL,ibs_cbs_cst TEXT,c_class_trib TEXT,
  active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(company_id,id)
 );
+CREATE UNIQUE INDEX idx_fiscal_profiles_legacy_id_compat ON fiscal_profiles(id);
 INSERT INTO fiscal_profiles(company_id,id,name,ncm,cest,cfop,origin,csosn,icms_cst,pis_cst,cofins_cst,unit,ibs_cbs_cst,c_class_trib,active,created_at,updated_at)
  SELECT 'default',id,name,ncm,cest,cfop,origin,csosn,icms_cst,pis_cst,cofins_cst,unit,ibs_cbs_cst,c_class_trib,active,created_at,updated_at FROM fiscal_profiles_legacy;
 CREATE TABLE product_fiscal_data(
@@ -29,6 +30,7 @@ CREATE TABLE product_fiscal_data(
  gtin TEXT,service_code TEXT,service_description TEXT,overrides_json TEXT NOT NULL DEFAULT '{}',updated_at TEXT NOT NULL,
  PRIMARY KEY(company_id,product_id),FOREIGN KEY(company_id,fiscal_profile_id) REFERENCES fiscal_profiles(company_id,id)
 );
+CREATE UNIQUE INDEX idx_product_fiscal_legacy_product_compat ON product_fiscal_data(product_id);
 INSERT INTO product_fiscal_data(company_id,product_id,fiscal_profile_id,gtin,overrides_json,updated_at)
  SELECT 'default',product_id,fiscal_profile_id,gtin,overrides_json,updated_at FROM product_fiscal_data_legacy;
 DROP TABLE product_fiscal_data_legacy;
