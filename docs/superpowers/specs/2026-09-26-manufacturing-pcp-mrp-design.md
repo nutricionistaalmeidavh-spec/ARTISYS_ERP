@@ -1,74 +1,45 @@
 # ArtiSys ERP — Produção / PCP-MRP
 
 Data: 2026-09-26
-Base de referência: `main` em `3f21f3aa2ea384290db2fd37835ed50dba4ee3c7`
-Branch de trabalho: `feat/service-orders-manufacturing`
+Base revisada: `main` em `c0af43356be0cebe2b51abecd6a62c68907fbec0`
+Branch: `feat/service-orders-manufacturing`
 
 ## Objetivo
 
-Adicionar ao ArtiSys ERP um módulo de Produção operacional para pequena e média empresa, aproveitando a BOM/ficha técnica já existente e integrando planejamento de materiais, ordens de produção, reservas, consumo, perdas, apontamento, entrada do produto acabado, custos e requisições de compra.
+Adicionar PCP/MRP operacional para PME sem recriar infraestrutura já presente na `main`. Produção é um domínio novo; BOM, estoque, reservas, compras, filiais, alertas, notificações, aprovações, BI, documentos e projetos devem ser reutilizados quando aplicável.
 
-O escopo é PCP/MRP operacional. Não é objetivo desta entrega construir um MES industrial avançado.
+## O que já existe e deve ser reutilizado
 
-## Escopo
+Não criar novamente:
 
-Incluído:
-
-- criação de ordem de produção (OP);
-- produto acabado e quantidade planejada;
-- snapshot da BOM ativa na criação/liberação;
-- explosão automática de componentes;
-- cálculo de necessidade de materiais;
-- consulta de disponibilidade considerando estoque físico e reservas;
-- reserva de componentes;
-- indicação estruturada de faltas;
-- geração de requisição de compra para faltas;
-- liberação da OP;
-- início da produção;
-- consumo parcial/total de matérias-primas;
-- apontamento parcial de produto acabado;
-- perdas/refugo;
-- entrada automática do produto acabado no estoque;
-- custos previstos e realizados;
-- mão de obra, overhead e outros custos adicionais;
-- conclusão e cancelamento;
-- cálculo MRP sobre OPs abertas e estoque mínimo;
-- dashboard/listagem de OPs e necessidades;
-- histórico/auditoria;
-- multiempresa;
-- API e UI React;
-- testes de domínio, API e E2E.
-
-Fora do escopo:
-
-- OEE;
-- telemetria/IoT de máquinas;
-- capacidade finita por centro de trabalho;
-- sequenciamento avançado APS;
-- manutenção industrial;
-- apontamento por relógio/chão de fábrica dedicado;
-- qualidade laboratorial;
-- rastreabilidade regulatória específica de indústria farmacêutica/alimentos;
-- custeio contábil completo;
-- geração automática de NF-e;
-- alterações no Fiscal Core atual;
-- previsão de demanda por IA.
+- catálogo de produtos;
+- tipos `MANUFACTURED` e BOM (`product_boms`, `product_bom_items`);
+- estoque físico, movimentos e operações;
+- lotes/séries/endereçamento/inventory depth;
+- `inventory_reservations`;
+- requisições/cotações/compras;
+- `company_branches`;
+- `operational_alerts` e `notifications`;
+- workflows e aprovações genéricas;
+- BI/dashboards;
+- projetos/tarefas;
+- documentos/PDF;
+- financeiro;
+- Fiscal Core.
 
 ## Arquitetura
 
-Criar domínio isolado em `js/domains/manufacturing/`.
+Criar somente:
 
-Componentes previstos:
+- `js/domains/manufacturing/manufacturing-service.js`;
+- `js/domains/manufacturing/mrp-service.js`;
+- `server/routers/manufacturing-router.js`;
+- `frontend/src/pages/ManufacturingPage.tsx`;
+- migration `150-manufacturing.js`.
 
-- `manufacturing-service.js`: ciclo de vida das OPs, apontamentos e custos;
-- `mrp-service.js`: cálculo de necessidades e geração de requisições;
-- `server/routers/manufacturing-router.js`: API HTTP;
-- `frontend/src/pages/ManufacturingPage.tsx`: UI React;
-- migration `130-manufacturing.js`.
+Usar o `inventory-reservation-service.js` compartilhado criado na migration/infra `140-shared-operations-extension.js` do módulo de Serviços.
 
-A integração de reservas deve usar o mesmo `inventory-reservation-service.js` especificado para Serviços/OS, baseado em `inventory_reservations` existente.
-
-Não duplicar BOM. A fonte de estrutura do produto continua sendo `product_boms` e `product_bom_items` já existentes no domínio de varejo/catálogo. A OP captura um snapshot dos componentes para que uma edição futura da BOM não altere ordens já criadas/liberadas.
+Não criar um segundo serviço de BI. Indicadores de produção entram no `businessIntelligence` existente ou são consultados pelo próprio domínio sem criar infraestrutura paralela.
 
 ## Modelo de dados
 
@@ -78,17 +49,18 @@ Campos mínimos:
 
 - `id`;
 - `company_id`;
+- `branch_id` opcional;
 - `product_id`;
 - `bom_id`;
 - `bom_version`;
-- `location_id` para consumo;
-- `output_location_id` para entrada do acabado;
+- `location_id`;
+- `output_location_id`;
 - `status`;
 - `planned_quantity`;
 - `completed_quantity`;
 - `scrap_quantity`;
-- `planned_start_at` opcional;
-- `due_at` opcional;
+- `planned_start_at`;
+- `due_at`;
 - `released_at`;
 - `started_at`;
 - `completed_at`;
@@ -104,9 +76,7 @@ Campos mínimos:
 
 ### `manufacturing_order_components`
 
-Snapshot da BOM na OP.
-
-Campos mínimos:
+Snapshot da BOM:
 
 - `id`;
 - `manufacturing_order_id`;
@@ -117,56 +87,44 @@ Campos mínimos:
 - `planned_unit_cost_cents`;
 - `actual_cost_cents`;
 - `reservation_id` opcional;
-- `created_at`;
-- `updated_at`.
-
-`required_quantity = quantity_per_unit * planned_quantity` no snapshot inicial.
+- timestamps.
 
 ### `manufacturing_outputs`
-
-Cada apontamento de produto acabado:
 
 - `id`;
 - `manufacturing_order_id`;
 - `quantity`;
 - `unit_cost_cents`;
 - `inventory_movement_id`;
+- `idempotency_key` único;
 - `created_by`;
 - `created_at`.
 
 ### `manufacturing_losses`
 
-Registro de perdas/refugo:
-
 - `id`;
 - `manufacturing_order_id`;
-- `loss_type` em `COMPONENT` ou `OUTPUT`;
+- `loss_type` (`COMPONENT` ou `OUTPUT`);
 - `product_id`;
 - `quantity`;
 - `reason`;
 - `inventory_movement_id` opcional;
+- `idempotency_key` único;
 - `created_by`;
 - `created_at`.
 
-Perda de componente consome estoque adicional. Refugo de saída não entra no estoque de produto acabado.
-
 ### `manufacturing_cost_entries`
-
-Custos não materiais:
 
 - `id`;
 - `manufacturing_order_id`;
-- `cost_type` em `LABOR`, `OVERHEAD` ou `OTHER`;
+- `cost_type` (`LABOR`, `OVERHEAD`, `OTHER`);
 - `description`;
 - `amount_cents`;
+- `idempotency_key` único;
 - `created_by`;
 - `created_at`.
 
 ### `manufacturing_procurement_links`
-
-Evita gerar requisições duplicadas para a mesma necessidade.
-
-Campos mínimos:
 
 - `id`;
 - `company_id`;
@@ -177,9 +135,25 @@ Campos mínimos:
 - `source_key` único;
 - `created_at`.
 
-## Ciclo de vida da OP
+Não criar tabelas novas para alertas, aprovação, filial, projeto ou dashboard.
 
-Estados persistidos:
+## BOM
+
+Reutilizar a BOM atual de `retail`/catálogo.
+
+Na criação da OP:
+
+1. exigir produto `MANUFACTURED` ou produto com BOM ativa;
+2. obter BOM ativa;
+3. copiar versão e componentes para a OP;
+4. calcular `required_quantity = quantity_per_unit * planned_quantity`;
+5. calcular custo material previsto.
+
+Alteração futura da BOM não modifica OP existente.
+
+Enquanto `PLANNED`, alteração da quantidade recalcula sobre o snapshot atual. Troca de BOM exige `refresh-bom` explícito.
+
+## Estados
 
 - `PLANNED`;
 - `RELEASED`;
@@ -187,231 +161,215 @@ Estados persistidos:
 - `COMPLETED`;
 - `CANCELLED`.
 
-Falta de material não cria um sexto status persistido. Ela é uma condição derivada (`materialStatus`) para evitar explosão de estados.
+Falta de material é condição derivada (`materialStatus`), não novo status persistido.
 
-### `PLANNED`
+## PLANNED
 
-- OP criada com produto, quantidade, locais e datas;
-- BOM ativa é validada e copiada para os componentes da OP;
-- custos planejados são calculados;
-- ainda não há consumo;
-- MRP considera a OP como demanda aberta;
-- pode ser editada/cancelada.
+- editável;
+- sem consumo;
+- participa do cálculo MRP;
+- pode ser cancelada;
+- shortages podem ser consultados.
 
-### Liberação
+## Liberação
 
-A ação `release`:
+`release`:
 
-1. recalcula a necessidade remanescente dos componentes;
-2. verifica disponibilidade líquida por componente/local;
-3. se houver falta, não altera o status e retorna lista estruturada de faltas;
-4. se houver estoque suficiente, cria todas as reservas necessárias atomicamente;
-5. muda a OP para `RELEASED`.
+1. calcula necessidade remanescente;
+2. consulta disponibilidade líquida pelo serviço compartilhado de reservas;
+3. se houver falta, mantém `PLANNED` e retorna shortages;
+4. se houver estoque, cria todas as reservas atomicamente;
+5. muda para `RELEASED`.
 
-A liberação é all-or-nothing: uma OP não fica parcialmente liberada.
+A liberação é all-or-nothing.
 
-### `RELEASED`
+Não criar mecanismo de aprovação próprio. Se uma empresa desejar aprovação interna da liberação, usar `generic_approvals` existente como extensão opcional, sem duplicar estado da OP.
 
-- todos os componentes necessários estão reservados;
-- pode ser iniciada;
-- ainda não houve produção física obrigatória.
+## RELEASED
 
-### `IN_PROGRESS`
+- todos os componentes obrigatórios estão reservados;
+- `start` muda para `IN_PROGRESS`.
 
-A ação `start` altera `RELEASED -> IN_PROGRESS`.
+## IN_PROGRESS
 
-Durante produção:
+Permite:
 
-- componentes podem ser consumidos parcialmente;
-- consumo reduz estoque e reserva na mesma transação;
-- apontamentos de produto acabado podem ocorrer parcialmente;
-- custos adicionais podem ser registrados;
-- perdas/refugo podem ser registrados.
+- consumo parcial de componentes;
+- perdas de componente;
+- apontamento parcial de produto acabado;
+- refugo de saída;
+- custos adicionais.
 
-### Apontamento de produto acabado
+Consumo usa reserva compartilhada e movimento com `source_type='manufacturing-consumption'`.
 
-A ação `report-output`:
+## Saída de produto acabado
 
-1. valida OP `IN_PROGRESS`;
-2. valida quantidade positiva;
-3. impede que `completed_quantity + scrap_quantity` ultrapasse a quantidade planejada, salvo opção explícita de manager/admin para sobreprodução;
-4. calcula custo unitário realizado até o momento;
-5. gera movimento positivo em `output_location_id` com `source_type='manufacturing-output'`;
-6. registra `manufacturing_outputs`;
-7. incrementa `completed_quantity`.
-
-No escopo padrão, sobreprodução não é permitida. Eventual exceção exige `allowOverproduction=true` e papel `admin`/`manager`, com auditoria explícita.
-
-### Perdas/refugo
-
-#### `COMPONENT`
-
-- consome estoque adicional do componente;
-- aumenta custo material real;
-- exige motivo;
-- não reduz automaticamente a quantidade planejada do produto acabado.
-
-#### `OUTPUT`
-
-- registra quantidade produzida e rejeitada;
-- não cria entrada em estoque do acabado;
-- incrementa `scrap_quantity`;
-- exige motivo.
-
-### Conclusão
-
-A ação `complete`:
+`report-output`:
 
 1. exige `IN_PROGRESS`;
-2. exige `completed_quantity + scrap_quantity == planned_quantity`;
-3. libera saldos de reservas não consumidos;
-4. recalcula custos realizados;
-5. grava `actual_total_cost_cents`;
-6. marca `COMPLETED`.
+2. valida quantidade positiva;
+3. impede sobreprodução por padrão;
+4. calcula custo realizado disponível;
+5. gera movimento positivo em `output_location_id` com `source_type='manufacturing-output'`;
+6. registra output e atualiza `completed_quantity` atomicamente.
 
-A conclusão não cria lançamento financeiro por padrão. Produção altera valor econômico do estoque, mas não representa entrada/saída de caixa. O financeiro permanece responsável por compras, pagamentos e vendas.
+Sobreprodução somente com flag explícita e `admin`/`manager`, sempre auditada.
 
-### Cancelamento
+## Perdas e refugo
 
-- `PLANNED`: pode cancelar sem efeitos físicos;
-- `RELEASED`: libera reservas e cancela;
-- `IN_PROGRESS`: somente `admin`/`manager`; preserva consumos e outputs já realizados, libera reservas remanescentes e exige motivo;
-- `COMPLETED`: não pode ser cancelada diretamente.
+### COMPONENT
 
-## BOM e snapshot
+- consumo adicional de matéria-prima;
+- reduz estoque;
+- aumenta custo real;
+- exige motivo.
 
-Na criação da OP:
+### OUTPUT
 
-- exigir produto `MANUFACTURED` ou produto com BOM ativa;
-- obter `activeBom(productId)`;
-- copiar `bom_id`, versão e componentes;
-- armazenar `quantity_per_unit` e `required_quantity`.
-
-Edições posteriores da BOM não alteram a OP existente.
-
-Se uma OP `PLANNED` for editada em quantidade antes de ser liberada, recalcular `required_quantity` sobre o snapshot original da BOM, não sobre uma nova versão silenciosamente. Trocar a versão da BOM exige ação explícita `refresh-bom` enquanto `PLANNED`.
+- representa produção rejeitada;
+- não entra no estoque de produto acabado;
+- aumenta `scrap_quantity`;
+- exige motivo.
 
 ## Custos
 
-### Planejado
+Planejado:
 
-Para cada componente:
+`required_quantity * costPriceCents` por componente.
 
-`planned_component_cost = required_quantity * catalog.costPriceCents`.
+Real:
 
-`planned_material_cost = soma dos componentes`.
+- materiais efetivamente consumidos;
+- `LABOR`;
+- `OVERHEAD`;
+- `OTHER`.
 
-### Realizado
-
-Material real usa o custo informado no movimento/consumo quando disponível; caso contrário, usa o custo do produto no momento do consumo.
-
-`actual_total_cost = actual_material_cost + LABOR + OVERHEAD + OTHER`.
-
-Custo unitário realizado final:
+`actual_total_cost = material + custos adicionais`.
 
 `actual_unit_cost = actual_total_cost / completed_quantity`.
 
-Quando houver refugo de saída, o custo do refugo permanece absorvido na ordem; portanto o custo unitário das unidades boas aumenta.
+Refugo permanece absorvido no custo da ordem.
 
-O custo unitário usado na entrada do produto acabado deve refletir o custo realizado acumulado disponível no momento de cada apontamento. Na conclusão, registrar o custo final da ordem; não reescrever movimentos históricos de estoque.
+Produção não cria conta a pagar/receber por si só. Compras e vendas continuam responsáveis pelos fatos financeiros.
+
+## Conclusão
+
+`complete`:
+
+1. exige `IN_PROGRESS`;
+2. exige `completed_quantity + scrap_quantity == planned_quantity`;
+3. libera reservas remanescentes;
+4. consolida custos;
+5. marca `COMPLETED`.
+
+Não reescrever movimentos históricos de estoque ao recalcular custo final.
+
+## Cancelamento
+
+- `PLANNED`: cancela diretamente;
+- `RELEASED`: libera reservas;
+- `IN_PROGRESS`: somente `admin`/`manager`, preserva consumos e outputs existentes e libera saldo reservado;
+- `COMPLETED`: não cancela diretamente.
 
 ## MRP
 
-Criar `mrp-service.js` com cálculo sob demanda. Não é necessário job cloud ou serviço externo.
+Criar cálculo sob demanda em `mrp-service.js`, sem serviço cloud.
 
-### Entradas consideradas
-
-- saldo físico por produto/local;
-- reservas `ACTIVE` ainda não consumidas;
-- componentes remanescentes de OPs `PLANNED`, `RELEASED` e `IN_PROGRESS`;
-- estoque mínimo (`minStock`) do produto;
-- estoque alvo (`targetStock`) quando configurado;
-- requisições de compra já ligadas ao módulo de produção para evitar duplicidade.
-
-### Disponibilidade líquida
-
-`available_unreserved = physical_balance - active_reserved_remaining`.
-
-### Necessidade bruta de produção
-
-Somar, por componente, o saldo ainda necessário de todas as OPs abertas:
-
-`gross_production_requirement = required_quantity - consumed_quantity`.
-
-Para OPs já `RELEASED`/`IN_PROGRESS`, a parte coberta por reserva não deve ser contada novamente como falta de compra.
-
-### Estoque de segurança
-
-Após considerar a demanda produtiva, calcular projeção.
-
-Se a projeção ficar abaixo de `minStock`, gerar necessidade adicional até `targetStock`. Se `targetStock` não estiver definido ou for menor que `minStock`, usar `minStock` como alvo.
-
-### Saída do MRP
-
-Por produto:
+Entradas:
 
 - saldo físico;
-- reservado;
+- reservas ativas remanescentes;
+- componentes remanescentes de OPs abertas;
+- `minStock`;
+- `targetStock`;
+- requisições de compra já vinculadas ao manufacturing.
+
+### Regra para não contar reservas duas vezes
+
+Para cada componente:
+
+- `physical = saldo físico`;
+- `reserved_all = reservas ACTIVE remanescentes de todos os domínios`;
+- `reserved_for_open_manufacturing = parcela das reservas ACTIVE pertencente às OPs abertas analisadas`;
+- `unreserved_available = physical - reserved_all`;
+- `open_requirement = soma(required_quantity - consumed_quantity)`;
+- `uncovered_production_requirement = max(0, open_requirement - reserved_for_open_manufacturing)`;
+- `projected_after_production = unreserved_available - uncovered_production_requirement`.
+
+Necessidade de segurança:
+
+- se `projected_after_production < minStock`, repor até `targetStock`;
+- se `targetStock` for ausente ou menor que `minStock`, usar `minStock`.
+
+Depois subtrair quantidades já cobertas por requisições ligadas ao manufacturing e ainda abertas.
+
+Saída MRP por produto:
+
+- saldo físico;
+- reservado total;
+- reservado para produção aberta;
 - disponível não reservado;
-- demanda de produção;
-- estoque mínimo;
-- estoque alvo;
-- quantidade já coberta por requisição vinculada;
+- necessidade de produção não coberta;
+- estoque mínimo/alvo;
+- quantidade já requisitada;
 - necessidade líquida;
-- OPs causadoras da demanda.
+- OPs causadoras.
 
-## Requisição de compra por falta
+## Compras
 
-A geração de requisição deve reutilizar `procurementRequisitions.createRequisition`.
+Reutilizar `procurementRequisitions.createRequisition`.
 
-Não criar pedido de compra diretamente.
+Nunca criar pedido de compra diretamente pelo MRP.
 
-A ação pode operar:
+Ações:
 
-- para uma OP específica (`generate-shortage-requisition`);
-- para resultado agregado do MRP (`generate-mrp-requisition`).
+- `generate-shortage-requisition` para uma OP;
+- `generate-mrp-requisition` para necessidade agregada.
 
 Regras:
 
-- somente quantidades líquidas positivas;
-- agrupar por local de consumo;
-- justificativa identifica OP/MRP;
-- gravar link em `manufacturing_procurement_links`;
-- usar `source_key` determinístico para impedir duplicidade;
-- requisição criada permanece no fluxo normal de compras/cotação/aprovação.
+- somente necessidade positiva;
+- agrupar por local;
+- `source_key` determinístico;
+- `manufacturing_procurement_links` impede duplicidade;
+- requisição segue cotação/aprovação/compras existentes.
 
-## Reservas e consumo
+## Filiais, alertas e notificações
 
-Usar `inventory-reservation-service` compartilhado.
+- `branch_id` referencia `company_branches` existente;
+- atraso de OP/falta crítica pode criar `operational_alert` existente;
+- mensagens ao usuário usam `notifications` existente;
+- não criar infraestrutura paralela.
 
-Para cada componente reservado:
+## BI
 
-- `source_type='manufacturing-order'`;
-- `source_id=<component-id ou op-id conforme contrato escolhido no plano>`;
-- local de consumo da OP.
+Estender `businessIntelligence.overview()` com bloco opcional `manufacturing` contendo, no mínimo:
 
-O contrato deve permitir uma reserva independente por componente e rastreabilidade até a OP.
+- OPs planejadas;
+- liberadas;
+- em produção;
+- atrasadas;
+- custo planejado x realizado;
+- shortages relevantes.
 
-O consumo deve gerar movimento:
+Não criar `manufacturing-dashboard-service` separado.
 
-- `source_type='manufacturing-consumption'`;
-- `source_id=<manufacturing-order-id>`.
+## Projetos
 
-Perdas adicionais usam `source_type='manufacturing-loss'`.
+`projects` e `project_tasks` já existem e não serão duplicados.
 
-Saída acabada usa `source_type='manufacturing-output'`.
+Nesta entrega, OP não exige projeto. Pode existir `project_id` opcional somente se a implementação mostrar valor concreto para rastreabilidade, sem transformar PCP em gestão de projetos.
 
 ## API
 
-Prefixo: `/api/v1/manufacturing`.
+Prefixo `/api/v1/manufacturing`:
 
-Rotas mínimas:
-
-- `GET /orders` com filtros/paginação;
+- `GET /orders`;
 - `POST /orders`;
 - `GET /orders/:id`;
-- `PATCH /orders/:id` somente `PLANNED`;
-- `POST /orders/:id/refresh-bom` somente `PLANNED`;
+- `PATCH /orders/:id` enquanto `PLANNED`;
+- `POST /orders/:id/refresh-bom`;
+- `GET /orders/:id/shortages`;
 - `POST /orders/:id/release`;
 - `POST /orders/:id/start`;
 - `POST /orders/:id/components/:componentId/consume`;
@@ -420,153 +378,85 @@ Rotas mínimas:
 - `POST /orders/:id/costs`;
 - `POST /orders/:id/complete`;
 - `POST /orders/:id/cancel`;
-- `GET /orders/:id/shortages`;
 - `POST /orders/:id/generate-shortage-requisition`;
 - `GET /mrp`;
 - `POST /mrp/requisition`.
 
-Listagens seguem o padrão de paginação do ERP.
-
-## Permissões
-
-- `admin` / `manager`: criar/editar/liberar/cancelar OP, custos, geração de requisição, sobreprodução excepcional;
-- `operator`: iniciar OP liberada, consumir componentes, registrar perdas e apontar saída;
-- `director`: leitura e dashboard por padrão;
-- `system`: somente chamadas internas explícitas.
-
-Toda operação é isolada por `company_id`.
+Listagens seguem paginação existente.
 
 ## UI
 
-Nova navegação: `Produção`.
+Criar `Produção` como área operacional própria.
 
-A página deve conter:
+Não duplicar BI geral, alertas, aprovações ou projetos.
 
-1. dashboard resumido: planejadas, liberadas, em produção, atrasadas, faltas de material;
-2. lista paginada de OPs com filtros por status, produto e período;
-3. criação/edição de OP;
-4. componentes explodidos da BOM;
-5. coluna de requerido, reservado, consumido e falta;
-6. ação de liberação;
-7. geração de requisição de compra quando houver falta;
-8. execução com consumo, perdas e apontamentos;
-9. custos planejados x realizados;
-10. aba MRP com necessidades agregadas e geração de requisição.
+A página contém:
 
-A UI deve usar rótulos em português e não expor JSON técnico como interface principal.
+- lista de OPs;
+- estados e atrasos;
+- BOM explodida;
+- requerido/reservado/consumido/falta;
+- release/start;
+- consumo/perdas/refugo;
+- outputs;
+- custos;
+- MRP;
+- geração de requisição.
 
-## Eventos e auditoria
+Indicadores executivos aparecem também no BI já existente.
 
-Registrar auditoria para:
+## Permissões
 
-- criação/edição;
-- refresh de BOM;
-- liberação;
-- início;
-- consumo;
-- perdas;
-- apontamento de saída;
-- custo adicional;
-- geração de requisição;
-- conclusão;
-- cancelamento;
-- sobreprodução excepcional.
+- `admin` / `manager`: criar/editar/liberar/cancelar, custos, requisições, sobreprodução excepcional;
+- `operator`: iniciar, consumir, registrar perdas e outputs;
+- `director`: leitura/BI;
+- `system`: integrações internas explícitas.
 
-Quando apropriado, emitir eventos via outbox existente para estoque/compras sem criar dependência síncrona adicional além dos serviços já usados no runtime.
+Isolamento obrigatório por `company_id`.
 
-## Erros, transações e idempotência
+## Migração
 
-- liberação + criação das reservas deve ser atômicas;
-- consumo + movimento de estoque + atualização da reserva deve ser atômico;
-- apontamento + entrada de estoque + atualização da OP deve ser atômico;
-- conclusão + liberação de reservas + status deve ser atômico;
-- geração de requisição deve ser idempotente por `source_key`;
-- repetição de consumo/output com a mesma chave de idempotência não pode duplicar movimento físico;
-- estoque negativo continua proibido pelo domínio de inventory.
+Usar `150-manufacturing.js`.
 
-## Migração e compatibilidade
+Não usar `130`, já ocupado por `130-erp-utilities-p0-p2`.
 
-A migration `130-manufacturing.js` deve ser aditiva.
-
-Não alterar semanticamente:
-
-- BOM existente;
-- PDV;
-- vendas administrativas;
-- NF-e/NFC-e;
-- compras existentes;
-- financeiro;
-- estoque avançado já disponível.
-
-A única infraestrutura compartilhada nova é o serviço genérico sobre `inventory_reservations` e, se necessário, coluna aditiva de quantidade consumida.
+A migration é aditiva e não altera semanticamente BOM, estoque, compras, projetos, BI, Fiscal ou financeiro existentes.
 
 ## Testes obrigatórios
 
-### Domínio
+Cobrir:
 
-Cobrir no mínimo:
-
-- criação de OP com snapshot da BOM;
-- falha sem BOM;
-- recálculo de quantidade `PLANNED`;
-- refresh explícito de BOM;
-- liberação com estoque suficiente;
-- liberação bloqueada por falta;
-- reservas considerando outras reservas ativas;
-- geração de requisição sem duplicidade;
-- início;
+- snapshot da BOM;
+- produto sem BOM;
+- refresh explícito;
+- release com e sem estoque;
+- concorrência de reservas com venda e OS;
 - consumo parcial/total;
-- consumo acima da reserva bloqueado;
-- perda de componente;
-- refugo de saída;
-- saída parcial de produto acabado;
+- perda e refugo;
+- outputs parciais;
+- idempotência de output/perda/custo;
 - sobreprodução bloqueada e exceção autorizada;
-- custo planejado e realizado;
-- conclusão apenas quando quantidade planejada estiver resolvida;
-- liberação de reservas remanescentes;
-- cancelamento por estado;
-- isolamento multiempresa;
-- RBAC;
-- MRP com minStock/targetStock e múltiplas OPs.
-
-### API
-
-Cobrir contratos, filtros, paginação, transições inválidas, idempotência e erros de permissão.
-
-### E2E Electron
-
-Fluxo mínimo:
-
-1. usar produto manufaturado com BOM;
-2. criar OP;
-3. liberar;
-4. iniciar;
-5. consumir componentes;
-6. apontar saída;
-7. registrar custo adicional;
-8. concluir;
-9. validar entrada do acabado e custo da ordem.
-
-Adicionar cenário de falta de material:
-
-1. criar OP sem estoque suficiente;
-2. liberação falhar com shortages;
-3. gerar requisição;
-4. verificar vínculo sem duplicação.
+- custo previsto/real;
+- conclusão;
+- cancelamento;
+- MRP sem dupla contagem de reservas;
+- minStock/targetStock;
+- requisição sem duplicidade;
+- integração com alertas/BI existentes;
+- multiempresa/RBAC;
+- E2E Electron do ciclo completo e cenário de shortage.
 
 ## Critérios de aceite
 
-O módulo será considerado concluído quando:
+Concluído quando:
 
-- uma OP puder percorrer todo o ciclo pela UI e API;
-- BOM for reutilizada e snapshotada sem duplicação de cadastro;
-- reservas impedirem concorrência de estoque entre vendas, OS e produção;
-- consumo e saída alterarem estoque corretamente;
-- faltas gerarem necessidade clara e requisição de compra idempotente;
-- MRP considerar estoque, reservas, OPs abertas e política mínima/alvo;
-- custos planejados e realizados forem visíveis;
-- conclusão liberar reservas e preservar rastreabilidade;
-- multiempresa e RBAC funcionarem;
+- não houver duplicação de BOM, estoque, reserva, compras, alertas, notificações, workflows, aprovações, filiais, BI ou projetos;
+- OP percorrer o ciclo completo na UI/API;
+- reservas compartilharem disponibilidade real com vendas e OS;
+- MRP não contar demanda/reserva duas vezes;
+- shortages puderem virar requisição existente de compras;
+- custos e outputs estiverem rastreáveis;
+- BI atual receber indicadores de produção sem serviço paralelo;
 - migrations preservarem bases existentes;
-- testes de domínio, API, E2E e gates atuais passarem;
-- Fiscal Core atual permanecer inalterado.
+- todos os gates e E2E passarem;
+- Fiscal Core permanecer inalterado.
