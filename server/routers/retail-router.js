@@ -12,6 +12,7 @@ function createRetailRouter({runtime,sessions,bodyLimitBytes=1024*1024}={}){retu
  if(p==='/api/v1/retail/sales'&&req.method==='POST'){json(res,201,runtime.retail.createSale(await data(),actor));return true;}
  if((m=pathMatch(p,'/api/v1/retail/sales/:id'))&&req.method==='GET'){json(res,200,runtime.retail.getSale(m.id));return true;}
  if((m=pathMatch(p,'/api/v1/retail/sales/:id/returns'))&&req.method==='POST'){json(res,201,runtime.retail.returnSale(m.id,await data(),actor));return true;}
+ if((m=pathMatch(p,'/api/v1/retail/admin-invoices/:id/returns'))&&req.method==='POST'){json(res,201,runtime.retail.returnAdminInvoice(m.id,await data(),actor));return true;}
  if(p==='/api/v1/retail/transfers'){if(req.method==='GET'){json(res,200,runtime.retail.listTransfers({status:url.searchParams.get('status')}));return true;}if(req.method==='POST'){json(res,201,runtime.retail.requestTransfer(await data(),actor));return true;}}
  if((m=pathMatch(p,'/api/v1/retail/transfers/:id/:action'))&&req.method==='POST'){json(res,200,runtime.retail.transitionTransfer(m.id,m.action,actor));return true;}
  if(p==='/api/v1/imports/preview'&&req.method==='POST'){json(res,200,runtime.retail.previewImport(await data()));return true;}
