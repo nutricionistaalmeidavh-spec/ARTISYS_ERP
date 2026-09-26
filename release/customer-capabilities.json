@@ -31,6 +31,11 @@
       "status": "available"
     },
     {
+      "id": "fiscal-interoperability",
+      "name": "Interoperabilidade fiscal contextual para preparar e vincular NFC-e, NF-e e NFS-e em vendas, ordens de serviço, devoluções, compras e transferências",
+      "status": "available"
+    },
+    {
       "id": "finance",
       "name": "Contas a pagar e receber, DRE, fluxo, OFX, conciliação, recorrências e alertas",
       "status": "available"
