@@ -31,7 +31,8 @@
     "@artisys/finance-domain": "file:vendor/artisys-finance-domain",
     "pdfjs-dist": "^6.3.289",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/react": "^19.1.12",
