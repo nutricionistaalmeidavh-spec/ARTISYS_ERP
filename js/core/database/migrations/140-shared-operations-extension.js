@@ -1,0 +1,21 @@
+'use strict';
+module.exports={id:'140-shared-operations-extension',up(db){db.exec(`
+ALTER TABLE assets ADD COLUMN customer_id TEXT;
+ALTER TABLE inventory_reservations ADD COLUMN consumed_quantity REAL NOT NULL DEFAULT 0;
+ALTER TABLE service_orders ADD COLUMN location_id TEXT;
+ALTER TABLE service_orders ADD COLUMN technician_user_id TEXT;
+ALTER TABLE service_orders ADD COLUMN diagnosis TEXT;
+ALTER TABLE service_orders ADD COLUMN notes TEXT;
+ALTER TABLE service_orders ADD COLUMN approved_at TEXT;
+ALTER TABLE service_orders ADD COLUMN started_at TEXT;
+ALTER TABLE service_orders ADD COLUMN completed_at TEXT;
+ALTER TABLE service_orders ADD COLUMN cancelled_at TEXT;
+ALTER TABLE service_orders ADD COLUMN cancellation_reason TEXT;
+ALTER TABLE service_orders ADD COLUMN service_total_cents INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE service_orders ADD COLUMN parts_total_cents INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE service_orders ADD COLUMN total_cents INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE service_orders ADD COLUMN receivable_entry_id TEXT;
+ALTER TABLE service_orders ADD COLUMN completion_idempotency_key TEXT;
+CREATE INDEX IF NOT EXISTS idx_assets_company_customer ON assets(company_id,customer_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_service_orders_completion_key ON service_orders(company_id,completion_idempotency_key) WHERE completion_idempotency_key IS NOT NULL;
+`);}};

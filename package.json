@@ -47,7 +47,7 @@
   },
   "build": {
     "appId":"com.artisys.erp","productName":"ArtiSys ERP","asar":true,"directories":{"output":"dist"},
-    "files":["desktop/**/*","frontend/dist/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/finance/**/*","js/domains/reports/**/*","server/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
+    "files":["desktop/**/*","frontend/dist/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/services/**/*","js/domains/manufacturing/**/*","js/domains/finance/**/*","js/domains/reports/**/*","server/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
     "win":{"target":[{"target":"nsis","arch":["x64"]}],"artifactName":"ArtiSys-ERP-${version}-${arch}-Setup.${ext}"},
     "nsis":{"oneClick":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true,"deleteAppDataOnUninstall":false}
   }
