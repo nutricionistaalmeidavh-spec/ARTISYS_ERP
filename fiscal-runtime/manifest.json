@@ -17,8 +17,12 @@
   "acbr": {
     "root": "acbr",
     "expectedExecutable": "ACBrMonitorPLUS.exe",
-    "bundledExecutable": false,
+    "bundledExecutable": true,
     "runtimeDownload": false,
-    "provider": "acbr-local"
+    "provider": "acbr-local",
+    "sourceRepository": "https://github.com/frones/ACBr",
+    "sourceCommit": "2784a56ad10f60b9fa412c8d172e495e9d93a0e7",
+    "sourceLicense": "LGPL-2.1-or-later",
+    "buildScript": "scripts/build-acbr-runtime.ps1"
   }
 }
