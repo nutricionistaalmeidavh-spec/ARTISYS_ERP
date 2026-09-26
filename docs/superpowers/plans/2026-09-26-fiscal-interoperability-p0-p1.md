@@ -4,7 +4,7 @@
 
 **Goal:** Conectar o Fiscal Core aos fluxos de PDV, vendas administrativas, OS, devoluções, compras e transferências, com isolamento multiempresa e snapshots imutáveis, sem implementar ou duplicar a infraestrutura ACBr/SEFAZ da PR #17.
 
-**Architecture:** Evoluir o schema/core fiscal para ser company-scoped e aceitar `nfce|nfe|nfse`, depois criar `fiscal-interoperability-service.js` como camada neutra que resolve entidades existentes e produz intents/snapshots fiscais sem tocar estoque ou financeiro. A API `/api/v1/tax/*` expõe estado/preparação por origem e as UIs existentes apenas acionam/mostram esse estado; provider, sidecar, certificado, transporte, contingência e packaging permanecem responsabilidade exclusiva da PR #17.
+**Architecture:** Evoluir o schema/core fiscal para ser company-scoped e aceitar `nfce|nfe|nfse`, acrescentar ownership mínimo às origens legadas que ainda não carregam empresa, e criar `fiscal-interoperability-service.js` como camada neutra que resolve entidades existentes e produz intents/snapshots fiscais sem tocar estoque ou financeiro. A API `/api/v1/tax/*` expõe estado/preparação por origem e as UIs existentes apenas acionam/mostram esse estado; provider, sidecar, certificado, transporte, contingência e packaging permanecem responsabilidade exclusiva da PR #17.
 
 **Tech Stack:** Node.js CommonJS, SQLite, HTTP router local, React/TypeScript, renderer desktop legado, Node test runner, Electron E2E, GitHub Actions.
 
@@ -13,6 +13,7 @@
 ## Global Constraints
 
 - Não implementar nem modificar `acbr-local-provider`, `server/fiscal-sidecar/**`, `fiscal-runtime/**`, certificado, assinatura, transporte, contingência ou packaging ACBr.
+- Não modificar `package.json` para empacotamento fiscal nesta branch; a PR #17 é dona desse boundary.
 - Não duplicar estoque, recebíveis, pagamentos, contas a pagar, créditos de fornecedor ou movimentos de transferência.
 - Produção/OP não cria documento fiscal diretamente.
 - `runtime.fiscal` continua sendo a fonte de verdade dos documentos e lifecycle local; a nova camada de interoperabilidade só resolve origens e prepara snapshots/intents.
@@ -20,18 +21,19 @@
 - Snapshots fiscais tornam-se imutáveis após a criação do documento.
 - Rotas existentes `/api/v1/tax/documents*` e lifecycle/status devem permanecer compatíveis com a futura integração da PR #17.
 - Transferência só entra no fiscal quando `fiscalRequired=true`; nenhum motor tributário automático será criado nesta fase.
+- Ownership operacional adicional será limitado às origens necessárias para provar isolamento fiscal: venda administrativa e compras.
 
 ## Review Focus
 
-1. **Cross-company leakage:** IDs de documento, idempotency keys, perfis e produtos iguais/reutilizados em empresas diferentes nunca podem expor ou sobrescrever dados de outra empresa — coberto nas Tasks 1 e 2.
-2. **Retry/idempotência:** repetir preparação de uma origem, inclusive OS mista, não pode gerar segundo documento nem consumir nova sequência — coberto nas Tasks 2, 3 e 4.
-3. **Snapshot drift:** alterar cliente/produto/perfil depois de preparar o documento não pode mudar `snapshot_json` existente — coberto na Task 3.
-4. **Fiscal sem efeitos operacionais:** preparar/vincular documentos de venda, OS, devolução, compra ou transferência não pode alterar saldos de estoque nem financeiro — coberto nas Tasks 3, 4, 5 e 6.
-5. **Merge com PR #17:** nenhuma implementação desta branch pode importar provider/sidecar nem exigir que o provider conheça OS, compra ou devolução; o contrato de consumo deve terminar em `fiscal_document + snapshot_json` — coberto nas Tasks 2 e 9.
+1. **Cross-company leakage:** IDs de documento, idempotency keys, perfis, produtos e origens iguais/reutilizados em empresas diferentes nunca podem expor ou sobrescrever dados de outra empresa — Tasks 1, 2 e 3.
+2. **Retry/idempotência:** repetir preparação de uma origem, inclusive OS mista, não pode gerar segundo documento nem consumir nova sequência — Tasks 3, 4 e 5.
+3. **Snapshot drift:** alterar cliente/produto/perfil depois de preparar o documento não pode mudar `snapshot_json` existente — Task 4.
+4. **Fiscal sem efeitos operacionais:** preparar/vincular documentos de venda, OS, devolução, compra ou transferência não pode alterar saldos de estoque nem financeiro — Tasks 4 a 7.
+5. **Merge com PR #17:** nenhuma implementação desta branch pode importar provider/sidecar nem exigir que o provider conheça OS, compra ou devolução; o contrato termina em `fiscal_document + snapshot_json` — Tasks 3 e 10.
 
 ---
 
-### Task 1: Fiscal schema v2 e migração compatível
+### Task 1: Schema fiscal v2 e upgrade compatível
 
 **Files:**
 - Create: `js/core/database/migrations/160-fiscal-interoperability.js`
@@ -40,20 +42,20 @@
 
 **Interfaces:**
 - Consumes: schema legado de `120-fiscal-core` e migrations até `151-manufacturing-loss-reservation-guard`.
-- Produces: settings/perfis/vínculos/sequências/documentos company-scoped, `snapshot_json`, `direction`, `operation_kind`, `parent_document_id` e suporte a `nfse`.
+- Produces: settings/perfis/vínculos/sequências/documentos company-scoped, metadados neutros de serviço, snapshots e suporte a `nfse`.
 
-- [ ] **Step 1: Escrever o teste RED de upgrade**
+- [ ] **Step 1: Escrever teste RED de upgrade**
 
-Criar teste que inicializa banco no schema legado, insere settings/perfil/vínculo/documento `POS_SALE`, executa `runErpMigrations()` e verifica:
-- registro legado preservado na empresa `default`;
-- `fiscal_company_settings.company_id` único;
-- `fiscal_profiles.company_id='default'` no legado;
-- vínculo fiscal por `(company_id, product_id)`;
-- `fiscal_sequences` chaveada por empresa + tipo + ambiente + série;
-- documento legado preservado com `company_id='default'`;
-- novo `document_type='nfse'` aceito;
-- `snapshot_json`, `direction`, `operation_kind`, `parent_document_id` presentes;
-- `UNIQUE(company_id,idempotency_key)`, permitindo a mesma chave em empresas diferentes.
+O teste deve criar dados no schema legado e provar após `runErpMigrations()`:
+- settings legado preservado em `company_id='default'` e `company_id` único;
+- perfis legados recebem `company_id='default'`;
+- `product_fiscal_data` passa a ser chaveado por `(company_id, product_id)` e suporta `service_code` + `service_description`;
+- sequências passam a ser chaveadas por `(company_id, document_type, environment, series)`;
+- documentos legados sobrevivem com `company_id='default'`;
+- `document_type` aceita `nfce|nfe|nfse`;
+- documentos passam a ter `direction`, `operation_kind`, `snapshot_json`, `parent_document_id`;
+- idempotência passa a ser `UNIQUE(company_id,idempotency_key)`;
+- origem/documento/operação não duplica dentro da mesma empresa.
 
 - [ ] **Step 2: Rodar o teste e confirmar RED**
 
@@ -62,13 +64,13 @@ Expected: FAIL porque a migration `160-fiscal-interoperability` ainda não exist
 
 - [ ] **Step 3: Implementar migration `160-fiscal-interoperability`**
 
-Reconstruir as tabelas fiscais necessárias preservando dados legados. Manter IDs existentes, migrar legado para `company_id='default'`, e usar `CHECK`/índices compatíveis com:
-- source types: `POS_SALE`, `ADMIN_INVOICE`, `SERVICE_ORDER_SERVICE`, `SERVICE_ORDER_PARTS`, `POS_RETURN`, `ADMIN_RETURN`, `PURCHASE_RECEIPT`, `PURCHASE_RETURN`, `INVENTORY_TRANSFER`;
-- document types: `nfce`, `nfe`, `nfse`;
-- directions: `INBOUND`, `OUTBOUND`;
-- operation kinds: `ISSUE`, `RETURN`, `TRANSFER`, `INBOUND_LINK`.
+Reconstruir somente as tabelas fiscais necessárias, preservando IDs e dados. Source types permitidos:
+`POS_SALE`, `ADMIN_INVOICE`, `SERVICE_ORDER_SERVICE`, `SERVICE_ORDER_PARTS`, `POS_RETURN`, `ADMIN_RETURN`, `PURCHASE_RECEIPT`, `PURCHASE_RETURN`, `INVENTORY_TRANSFER`.
 
-- [ ] **Step 4: Registrar migration no índice e rodar teste**
+Directions: `INBOUND|OUTBOUND`.
+Operation kinds: `ISSUE|RETURN|TRANSFER|INBOUND_LINK`.
+
+- [ ] **Step 4: Registrar migration e rodar teste**
 
 Run: `node --test test/fiscal-interoperability-migration.test.js`
 Expected: PASS.
@@ -79,7 +81,48 @@ Expected: PASS.
 
 ---
 
-### Task 2: Fiscal Core multiempresa e primitive de documento preparado
+### Task 2: Ownership multiempresa das origens administrativas/compras
+
+**Files:**
+- Create: `js/core/database/migrations/161-fiscal-source-company-ownership.js`
+- Modify: `js/core/database/migrations/index.js`
+- Modify: `js/domains/sales-admin/sales-admin-service.js`
+- Modify: `js/domains/procurement/procurement-service.js`
+- Test: `test/fiscal-source-company-ownership.test.js`
+
+**Interfaces:**
+- Consumes: `actor.companyId` já usado pelo runtime.
+- Produces: `company_id` persistido em `sales_admin_orders`, `sales_admin_invoices`, `purchase_orders`, `purchase_receipts`; getters/listagens usados pelo fiscal podem validar empresa sem inferência insegura.
+
+- [ ] **Step 1: Escrever teste RED de ownership**
+
+Criar duas empresas e provar que uma fatura administrativa e um recebimento de compra criados pela empresa A não são retornados por getters company-scoped da empresa B. Dados legados devem migrar para `default`.
+
+- [ ] **Step 2: Rodar teste e confirmar RED**
+
+Run: `node --test test/fiscal-source-company-ownership.test.js`
+Expected: FAIL porque as tabelas/serviços ainda não persistem empresa.
+
+- [ ] **Step 3: Implementar migration e escrita company-scoped**
+
+Adicionar `company_id NOT NULL DEFAULT 'default'` nas quatro tabelas e índices adequados. `createQuote()/invoiceOrder()` e `createPurchaseOrder()/receivePurchaseOrder()` persistem `actor.companyId` e rejeitam encadeamento cross-company.
+
+- [ ] **Step 4: Expor leitura company-scoped sem quebrar callers antigos**
+
+Adicionar actor opcional nos getters/listagens necessários ao fiscal; quando actor existir, filtrar por empresa. Callers legados internos sem actor mantêm compatibilidade somente onde não há boundary de usuário.
+
+- [ ] **Step 5: Rodar teste**
+
+Run: `node --test test/fiscal-source-company-ownership.test.js`
+Expected: PASS.
+
+- [ ] **Step 6: Commit**
+
+`git commit -am "feat: scope fiscal source ownership by company"`
+
+---
+
+### Task 3: Fiscal Core multiempresa e primitive de documento preparado
 
 **Files:**
 - Modify: `js/domains/tax/tax-service.js`
@@ -87,7 +130,7 @@ Expected: PASS.
 - Test: `test/fiscal-core.test.js`
 
 **Interfaces:**
-- Consumes: schema da Task 1.
+- Consumes: schemas das Tasks 1 e 2.
 - Produces:
   - `settings(actorOrCompany)`
   - `saveSettings(input, actor)`
@@ -98,9 +141,9 @@ Expected: PASS.
   - `documentsForSource(sourceType, sourceId, actor)`
   - `transition(id, input, actor)` preservado para PR #17.
 
-- [ ] **Step 1: Escrever testes RED de isolamento e idempotência**
+- [ ] **Step 1: Escrever testes RED de isolamento/idempotência**
 
-Cobrir duas empresas com configurações/perfis/vínculos diferentes, mesma `idempotencyKey`, sequências independentes e bloqueio de `getDocument()` cross-company.
+Cobrir duas empresas com configurações/perfis/vínculos diferentes, mesma idempotency key em empresas distintas, sequências independentes, `getDocument()` cross-company bloqueado e produto SERVICE com `serviceCode/serviceDescription` independentes por empresa.
 
 - [ ] **Step 2: Rodar testes e confirmar RED**
 
@@ -109,11 +152,16 @@ Expected: FAIL em settings/perfis/documentos globais.
 
 - [ ] **Step 3: Refatorar `tax-service.js` para company scope**
 
-Todas as queries de settings, perfil, produto, sequência, documento e listagem devem usar a empresa do actor. `createPreparedDocument(intent, actor)` recebe intent já resolvido contendo `sourceType`, `sourceId`, `documentType`, `direction`, `operationKind`, `snapshot`, `parentDocumentId?`, `idempotencyKey`; não consulta módulos de origem nem provider.
+Todas as queries fiscais usam a empresa ativa. `assignProduct()` aceita `serviceCode` e `serviceDescription` além de profile/GTIN/overrides.
 
-- [ ] **Step 4: Manter compatibilidade do lifecycle**
+`createPreparedDocument(intent, actor)` recebe:
+`sourceType`, `sourceId`, `documentType`, `direction`, `operationKind`, `snapshot`, `parentDocumentId?`, `idempotencyKey`, `initialStatus?`.
 
-`transition()` deve continuar atualizando status/access key/protocol/XML como hoje, mas somente dentro da empresa ativa. Nenhum import de ACBr/Focus é permitido.
+`initialStatus` é `PENDING` por padrão; `AUTHORIZED` só é aceito quando `direction='INBOUND'` e `operationKind='INBOUND_LINK'`.
+
+- [ ] **Step 4: Preservar lifecycle da PR #17**
+
+`transition()` continua atualizando status/access key/protocol/XML, sempre company-scoped. Nenhum import de ACBr/Focus/provider.
 
 - [ ] **Step 5: Rodar testes**
 
@@ -126,7 +174,7 @@ Expected: PASS.
 
 ---
 
-### Task 3: Orquestrador de PDV, venda administrativa e OS
+### Task 4: Orquestrador de PDV, venda administrativa e OS
 
 **Files:**
 - Create: `js/domains/tax/fiscal-interoperability-service.js`
@@ -145,13 +193,14 @@ Expected: PASS.
 Cobrir:
 - `POS_SALE` → exatamente uma `nfce`;
 - `ADMIN_INVOICE` → exatamente uma `nfe`;
-- OS só serviço → uma `nfse`;
-- OS só peças → uma `nfe` com apenas quantidade efetivamente consumida;
-- OS mista → dois documentos independentes, soma dos snapshots = `totalCents` da OS;
-- OS ainda não concluída retorna `ready=false`;
-- repetir preparação com mesma chave-base retorna os mesmos documentos e não avança sequência novamente;
-- preparar qualquer origem não altera quantidade de movimentos de estoque nem lançamentos financeiros;
-- editar produto/cliente/perfil após preparação não altera o snapshot persistido.
+- origem de outra empresa → rejeitada;
+- OS só serviço → uma `nfse`, exigindo `serviceCode` no readiness;
+- OS só peças → uma `nfe` apenas com peças efetivamente consumidas;
+- OS mista → dois documentos, e a soma dos snapshots reconcilia com `totalCents`;
+- OS não concluída → `ready=false`;
+- retry com mesma chave-base não gera documento/sequence extra;
+- preparar não muda contagem de movimentos de estoque nem lançamentos financeiros;
+- alterar cliente/produto/perfil após preparação não muda snapshot persistido.
 
 - [ ] **Step 2: Rodar teste e confirmar RED**
 
@@ -160,11 +209,11 @@ Expected: FAIL porque o serviço não existe.
 
 - [ ] **Step 3: Implementar resolvers e snapshot builders**
 
-`prepareSource()` deve resolver apenas as origens desta task. Para OS mista, derivar chaves idempotentes `${base}:service` e `${base}:parts`. Se uma parcela for zero, não criar o documento correspondente.
+Para OS mista, derivar `${base}:service` e `${base}:parts`. Se uma parcela for zero, não criar o documento correspondente. Snapshot inclui emissor, contraparte, origem, itens, quantidades, valores, total e dados fiscais resolvidos.
 
 - [ ] **Step 4: Registrar `runtime.fiscalInteroperability`**
 
-Instanciar depois de `fiscal`, `retail`, `salesAdmin` e `serviceOrders`, sem alterar a interface de provider.
+Instanciar depois de `fiscal`, `retail`, `salesAdmin` e `serviceOrders`, sem interface de provider.
 
 - [ ] **Step 5: Rodar teste**
 
@@ -177,7 +226,7 @@ Expected: PASS.
 
 ---
 
-### Task 4: Devoluções e relacionamento com documento original
+### Task 5: Devoluções e relacionamento com documento original
 
 **Files:**
 - Modify: `js/domains/tax/fiscal-interoperability-service.js`
@@ -187,23 +236,23 @@ Expected: PASS.
 - Consumes: `documentsForSource()`, `POS_RETURN`, `ADMIN_RETURN` e documentos fiscais originais.
 - Produces: intents `operationKind='RETURN'` com `parentDocumentId` quando houver original; sem referência inventada quando não houver.
 
-- [ ] **Step 1: Escrever testes RED de devolução**
+- [ ] **Step 1: Escrever testes RED**
 
 Cobrir:
 - devolução PDV relaciona documento original quando existente;
 - devolução administrativa relaciona NF-e original;
 - sem original, `parentDocumentId=null` e snapshot registra `originalDocumentStatus='NO_ORIGINAL_DOCUMENT'`;
-- repetição é idempotente;
+- retry é idempotente;
 - preparação não duplica reembolso, estoque ou financeiro.
 
 - [ ] **Step 2: Rodar teste e confirmar RED**
 
 Run: `node --test test/fiscal-interoperability-returns.test.js`
-Expected: FAIL porque resolvers de retorno não existem.
+Expected: FAIL.
 
 - [ ] **Step 3: Implementar resolvers de retorno**
 
-Usar o documento original relacionado quando disponível. O tipo do documento de retorno deve seguir o documento original quando ele existir; sem original, usar `nfe` como intent neutro de devolução, sem fabricar chave/protocolo anterior.
+Quando houver original, o intent de retorno herda seu `documentType`; sem original, usar `nfe` como intent neutro de retorno e deixar explícita a ausência de documento pai no snapshot.
 
 - [ ] **Step 4: Rodar teste**
 
@@ -216,27 +265,28 @@ Expected: PASS.
 
 ---
 
-### Task 5: NF-e de entrada e devolução a fornecedor
+### Task 6: NF-e de entrada e devolução a fornecedor
 
 **Files:**
 - Modify: `js/domains/tax/fiscal-interoperability-service.js`
 - Test: `test/fiscal-interoperability-procurement.test.js`
 
 **Interfaces:**
-- Consumes: `purchase_receipts`, `purchase_returns`, fornecedor, itens recebidos e Fiscal Core.
+- Consumes: `purchase_receipts`, `purchase_returns`, fornecedores e Fiscal Core.
 - Produces:
   - `linkInboundPurchaseReceipt(receiptId, input, actor)`
   - `prepareSource({sourceType:'PURCHASE_RETURN', ...}, actor)`.
 
-- [ ] **Step 1: Escrever testes RED de compras**
+- [ ] **Step 1: Escrever testes RED**
 
 Cobrir:
-- vínculo de NF-e de entrada cria documento `INBOUND + INBOUND_LINK + nfe` associado ao receipt;
-- metadados externos (`accessKey`, `series`, `number`, `xml?`, `issuerTaxId`) ficam no documento/snapshot sem chamar provider;
+- NF-e recebida cria documento `INBOUND + INBOUND_LINK + nfe` com `initialStatus='AUTHORIZED'`;
+- `accessKey`, `series`, `number`, `xml?`, `issuerTaxId` ficam no documento/snapshot sem chamar provider;
+- origem de outra empresa é rejeitada;
 - estoque e AP antes/depois do vínculo são idênticos;
-- nova tentativa com mesma chave é idempotente;
+- retry é idempotente;
 - devolução a fornecedor referencia a NF-e de entrada quando existente;
-- sem entrada vinculada, devolução continua preparável com `parentDocumentId=null` e pendência explícita no snapshot.
+- sem entrada vinculada, devolução é preparável com `parentDocumentId=null` e pendência explícita.
 
 - [ ] **Step 2: Rodar teste e confirmar RED**
 
@@ -245,7 +295,7 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implementar vínculo de entrada e resolver `PURCHASE_RETURN`**
 
-Documento inbound pode nascer `AUTHORIZED` porque representa NF-e externa já recebida; não deve passar pelo provider da PR #17. Nenhum parser XML é implementado aqui.
+Nenhum parser XML é criado. Documento inbound não usa sequência de emissão própria nem provider remoto; metadados recebidos são persistidos como referência externa autorizada.
 
 - [ ] **Step 4: Rodar teste**
 
@@ -258,10 +308,10 @@ Expected: PASS.
 
 ---
 
-### Task 6: Transferência com decisão fiscal explícita
+### Task 7: Transferência com decisão fiscal explícita
 
 **Files:**
-- Create: `js/core/database/migrations/161-transfer-fiscal-routing.js`
+- Create: `js/core/database/migrations/162-transfer-fiscal-routing.js`
 - Modify: `js/core/database/migrations/index.js`
 - Modify: `js/domains/sales-admin/retail-operations-service.js`
 - Modify: `js/domains/tax/fiscal-interoperability-service.js`
@@ -269,15 +319,15 @@ Expected: PASS.
 
 **Interfaces:**
 - Consumes: `inventory_transfer_orders` atual.
-- Produces: campos `fiscal_required`, `from_branch_id`, `to_branch_id` e resolver `INVENTORY_TRANSFER`.
+- Produces: `fiscal_required`, `from_branch_id`, `to_branch_id` e resolver `INVENTORY_TRANSFER`.
 
 - [ ] **Step 1: Escrever teste RED**
 
 Cobrir:
-- transferência padrão salva `fiscalRequired=false` e não é preparável fiscalmente;
-- `fiscalRequired=true` exige dados mínimos de estabelecimento/filial definidos no input;
-- preparar antes/na expedição produz exatamente um intent `nfe + OUTBOUND + TRANSFER`;
-- recebimento da transferência não cria segundo documento;
+- padrão `fiscalRequired=false` não prepara documento;
+- `fiscalRequired=true` exige `fromBranchId` e `toBranchId` válidos da mesma empresa do actor;
+- preparar antes/na expedição produz exatamente um `nfe + OUTBOUND + TRANSFER`;
+- recebimento não cria segundo documento;
 - preparação não altera movimentos da transferência.
 
 - [ ] **Step 2: Rodar teste e confirmar RED**
@@ -285,13 +335,13 @@ Cobrir:
 Run: `node --test test/fiscal-interoperability-transfer.test.js`
 Expected: FAIL.
 
-- [ ] **Step 3: Implementar migration e extensão do fluxo de transferência**
+- [ ] **Step 3: Implementar migration e extensão da transferência**
 
-Persistir somente a decisão explícita; não inferir obrigatoriedade fiscal por localização, filial ou UF.
+Persistir a decisão explícita; não inferir obrigatoriedade fiscal por localização, filial, CNPJ ou UF.
 
-- [ ] **Step 4: Implementar resolver fiscal da transferência**
+- [ ] **Step 4: Implementar resolver fiscal**
 
-`inspectSource()` deve indicar `NOT_FISCAL_REQUIRED` quando a flag for falsa.
+`inspectSource()` retorna `NOT_FISCAL_REQUIRED` quando a flag for falsa.
 
 - [ ] **Step 5: Rodar teste**
 
@@ -304,7 +354,7 @@ Expected: PASS.
 
 ---
 
-### Task 7: API fiscal orientada à origem
+### Task 8: API fiscal orientada à origem
 
 **Files:**
 - Modify: `server/routers/tax-router.js`
@@ -316,8 +366,8 @@ Expected: PASS.
   - `GET /api/v1/tax/sources/:sourceType/:sourceId`
   - `POST /api/v1/tax/sources/:sourceType/:sourceId/prepare`
   - `POST /api/v1/tax/inbound/purchase-receipts/:id`
-  - filtros opcionais de source em `GET /api/v1/tax/documents`
-  - rotas legadas de settings/profiles/products/documents/transition preservadas.
+  - filtros de source em `GET /api/v1/tax/documents`
+  - rotas legadas preservadas.
 
 - [ ] **Step 1: Escrever teste RED de API**
 
@@ -326,11 +376,11 @@ Validar autenticação/company scope, inspect/prepare para POS/OS/devolução, v
 - [ ] **Step 2: Rodar teste e confirmar RED**
 
 Run: `node --test test/fiscal-interoperability-api.test.js`
-Expected: FAIL com rotas ausentes e/ou leitura global.
+Expected: FAIL.
 
 - [ ] **Step 3: Implementar rotas mantendo compatibilidade**
 
-Todas as chamadas a `settings`, `profiles`, `productFiscal`, `documents`, `getDocument` e `transition` devem receber actor/company scope. O endpoint legado `POST /api/v1/tax/documents` pode permanecer como compatibilidade para `POS_SALE`/`ADMIN_INVOICE`, delegando à interoperabilidade em vez de reconstruir snapshot no router.
+Todas as chamadas a settings/profiles/products/documents/get/transition recebem actor. O legado `POST /api/v1/tax/documents` continua aceitando `POS_SALE`/`ADMIN_INVOICE`, mas delega para `fiscalInteroperability.prepareSource()` em vez de reconstruir snapshot no router.
 
 - [ ] **Step 4: Rodar teste**
 
@@ -343,7 +393,7 @@ Expected: PASS.
 
 ---
 
-### Task 8: UI fiscal nos fluxos de origem
+### Task 9: UI fiscal nos fluxos de origem
 
 **Files:**
 - Modify: `frontend/src/pages/RetailPage.tsx`
@@ -353,39 +403,39 @@ Expected: PASS.
 - Test: `qa/e2e/fiscal-interoperability.test.js`
 
 **Interfaces:**
-- Consumes: API da Task 7.
-- Produces: estado/ação fiscal contextual em PDV, devoluções, transferência, venda administrativa, OS e compras; aba Fiscal atual permanece monitor consolidado.
+- Consumes: API da Task 8.
+- Produces: estado/ação fiscal contextual em PDV, devoluções, transferência, venda administrativa, OS e compras; a aba Fiscal atual permanece monitor consolidado.
 
 - [ ] **Step 1: Escrever E2E RED**
 
 Cobrir no mínimo:
 - venda PDV concluída mostra estado fiscal e prepara NFC-e;
-- OS mista concluída mostra ações/estados separados para NFS-e e NF-e de peças;
-- um fluxo de devolução mostra documento original/estado;
-- compra permite vincular NF-e recebida sem repetir recebimento;
-- transferência não fiscal não mostra criação obrigatória; transferência fiscal mostra ação.
+- OS mista concluída mostra ações/estados separados de NFS-e e NF-e de peças;
+- devolução mostra original fiscal/estado;
+- compra vincula NF-e recebida sem repetir recebimento;
+- transferência não fiscal não oferece emissão obrigatória e transferência fiscal mostra ação.
 
 - [ ] **Step 2: Rodar E2E e confirmar RED**
 
-Run: `npm run e2e:electron -- --test fiscal-interoperability`
-Expected: FAIL nos pontos de UI ainda ausentes.
+Run: `node --test --test-concurrency=1 qa/e2e/fiscal-interoperability.test.js`
+Expected: FAIL nos pontos de UI ausentes.
 
 - [ ] **Step 3: Atualizar `RetailPage.tsx`**
 
-Trocar criação fiscal ad hoc por inspect/prepare da origem; mostrar status fiscal após venda/devolução e decisão fiscal na transferência. Monitor central continua usando `/api/v1/tax/documents`.
+Usar inspect/prepare por origem para PDV/devoluções; incluir decisão fiscal na transferência; manter Fiscal como monitor consolidado.
 
 - [ ] **Step 4: Atualizar `ServiceOrdersPage.tsx`**
 
-Após `COMPLETED`, consultar a origem OS e renderizar separadamente Serviço/NFS-e e Peças/NF-e, com botões de preparação independentes.
+Após `COMPLETED`, consultar estado fiscal e renderizar Serviço/NFS-e e Peças/NF-e separadamente, com preparação independente.
 
-- [ ] **Step 5: Atualizar vendas e compras legadas**
+- [ ] **Step 5: Atualizar vendas/compras legadas**
 
 `vendas.js`: estado/ação NF-e junto à fatura administrativa.
-`compras.js`: vínculo de NF-e de entrada no receipt e estado fiscal da devolução ao fornecedor.
+`compras.js`: vínculo de NF-e recebida no receipt e ação/status de devolução ao fornecedor.
 
 - [ ] **Step 6: Rodar E2E**
 
-Run: `npm run e2e:electron -- --test fiscal-interoperability`
+Run: `node --test --test-concurrency=1 qa/e2e/fiscal-interoperability.test.js`
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
@@ -394,7 +444,7 @@ Expected: PASS.
 
 ---
 
-### Task 9: Compatibilidade com PR #17, capacidades e gates finais
+### Task 10: Boundary PR #17, capacidades e gates finais
 
 **Files:**
 - Test: `test/fiscal-provider-boundary.test.js`
@@ -402,51 +452,48 @@ Expected: PASS.
 - Modify only if required by tests: `js/core/erp-runtime.js`, `server/routers/tax-router.js`
 
 **Interfaces:**
-- Consumes: todos os contratos anteriores e o lifecycle `runtime.fiscal.transition()`.
-- Produces: branch pronta para ser reconciliada com `feat/fiscal-acbr-runtime-port` sem provider duplicado.
+- Consumes: todos os contratos anteriores e `runtime.fiscal.transition()`.
+- Produces: branch pronta para reconciliação com `feat/fiscal-acbr-runtime-port`, sem provider duplicado.
 
-- [ ] **Step 1: Escrever teste de boundary da PR #17**
+- [ ] **Step 1: Escrever teste de boundary**
 
-Asserts:
-- `fiscal-interoperability-service.js` não importa provider/sidecar;
-- um documento preparado contém snapshot suficiente para emissão sem consultar módulos de origem;
-- `transition(PROCESSING/AUTHORIZED/REJECTED/UNKNOWN/FAILED/CANCELLED)` continua funcionando no documento preparado;
-- documento inbound não exige provider;
-- nenhum arquivo `server/fiscal-sidecar/**`, `fiscal-runtime/**` ou `acbr-local-provider.js` foi criado/modificado nesta branch.
+Static/runtime assertions:
+- `fiscal-interoperability-service.js` não importa `acbr-local-provider` nem sidecar;
+- snapshot contém tudo que o provider precisa sem consultar módulos de origem;
+- lifecycle `PROCESSING/AUTHORIZED/REJECTED/UNKNOWN/FAILED/CANCELLED` continua válido para outbound;
+- inbound autorizado não exige provider.
 
-- [ ] **Step 2: Rodar suíte de domínio/API completa**
+- [ ] **Step 2: Verificar diff da branch contra `main`**
+
+Confirmar manualmente que esta branch não altera `js/domains/tax/acbr-local-provider.js`, `server/fiscal-sidecar/**`, `fiscal-runtime/**` nem `package.json`.
+
+- [ ] **Step 3: Rodar domínio/API completo**
 
 Run: `npm run verify`
 Expected: PASS.
 
-- [ ] **Step 3: Rodar coverage**
+- [ ] **Step 4: Rodar coverage**
 
 Run: `npm run coverage`
 Expected: PASS nos thresholds existentes.
 
-- [ ] **Step 4: Rodar Electron E2E completo**
+- [ ] **Step 5: Rodar Electron E2E completo**
 
-Run: `npm run e2e:electron`
-Expected: PASS sem regressão nos fluxos anteriores.
-
-- [ ] **Step 5: Rodar release check e Windows build**
-
-Run: `npm run release:check`
+Run: `npm run e2e`
 Expected: PASS.
-
-Run: `npm run dist:win`
-Expected: instalador válido; nenhuma dependência da PR #17 deve ser necessária para os fluxos de preparação/local state.
 
 - [ ] **Step 6: Atualizar `release/customer-capabilities.json`**
 
-Declarar interoperabilidade fiscal por origem como disponível, deixando emissão remota ACBr/provider separada e condicionada à PR #17.
+Declarar interoperabilidade/preparação fiscal por origem disponível; emissão remota/provider continua separada e condicionada à PR #17.
 
-- [ ] **Step 7: Comparar com a PR #17 atual antes de abrir/atualizar PR**
+- [ ] **Step 7: Reconsultar a PR #17 antes do handoff/merge**
 
-Reconsultar `feat/fiscal-acbr-runtime-port`; se ela tiver avançado e tocar `tax-service.js`/runtime, reconciliar preservando simultaneamente:
+Se `feat/fiscal-acbr-runtime-port` tiver avançado e tocar `tax-service.js` ou runtime, reconciliar preservando:
 - provider/runtime dela;
 - company scope, source resolvers e snapshots desta branch.
 
+Depois da reconciliação com a PR #17, rodar também `npm run release:check` e `npm run dist:win`, pois o packaging fiscal pertence àquela branch.
+
 - [ ] **Step 8: Commit final**
 
-`git commit -am "test: verify fiscal interoperability release readiness"`
+`git commit -am "test: verify fiscal interoperability readiness"`
