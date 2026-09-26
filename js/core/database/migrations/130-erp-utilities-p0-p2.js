@@ -1,6 +1,6 @@
 'use strict';
 module.exports={id:'130-erp-utilities-p0-p2',up(db){db.exec(`
-CREATE TABLE IF NOT EXISTS company_branches(id TEXT PRIMARY KEY,company_id TEXT NOT NULL REFERENCES companies(id),code TEXT NOT NULL,name TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(company_id,code));
+CREATE TABLE IF NOT EXISTS company_branches(id TEXT PRIMARY KEY,company_id TEXT NOT NULL,code TEXT NOT NULL,name TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(company_id,code));
 CREATE TABLE IF NOT EXISTS dashboard_layouts(id TEXT PRIMARY KEY,company_id TEXT NOT NULL,user_id TEXT,name TEXT NOT NULL,layout_json TEXT NOT NULL,filters_json TEXT NOT NULL DEFAULT '{}',is_default INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS operational_alerts(id TEXT PRIMARY KEY,company_id TEXT NOT NULL,entity_kind TEXT NOT NULL,entity_id TEXT NOT NULL,title TEXT NOT NULL,due_at TEXT NOT NULL,severity TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'active',snoozed_until TEXT,acknowledged_at TEXT,acknowledged_by TEXT,dismissed_at TEXT,dismissed_by TEXT,dismiss_reason TEXT,metadata_json TEXT NOT NULL DEFAULT '{}',created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS notifications(id TEXT PRIMARY KEY,company_id TEXT NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL DEFAULT '',priority TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'unread',entity_kind TEXT,entity_id TEXT,metadata_json TEXT NOT NULL DEFAULT '{}',created_at TEXT NOT NULL,read_at TEXT,read_by TEXT);
@@ -20,4 +20,4 @@ CREATE INDEX IF NOT EXISTS idx_notifications_company_status ON notifications(com
 CREATE INDEX IF NOT EXISTS idx_assets_company ON assets(company_id,status,name);
 CREATE INDEX IF NOT EXISTS idx_os_company ON service_orders(company_id,status,opened_at);
 CREATE INDEX IF NOT EXISTS idx_projects_company ON projects(company_id,status,name);
-`);const now=new Date().toISOString();db.prepare("INSERT OR IGNORE INTO company_branches(id,company_id,code,name,active,created_at,updated_at) VALUES('default','default','MATRIZ','Matriz',1,?,?)").run(now,now);}};
+`);const now=new Date().toISOString();if(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='companies'").get())db.prepare("INSERT OR IGNORE INTO company_branches(id,company_id,code,name,active,created_at,updated_at) VALUES('default','default','MATRIZ','Matriz',1,?,?)").run(now,now);}};
