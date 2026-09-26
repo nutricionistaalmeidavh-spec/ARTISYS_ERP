@@ -22,6 +22,9 @@ const {createInventoryOperationsService}=require('../domains/inventory/inventory
 const {createInventoryDepthService}=require('../domains/inventory/inventory-depth-service');
 const {createInventoryReservationService}=require('../domains/inventory/inventory-reservation-service');
 const {createInventoryCostLedger}=require('../domains/traceability/inventory-cost-ledger');
+const {createTraceabilityService}=require('../domains/traceability/traceability-service');
+const {createCommercialFactService}=require('../domains/traceability/commercial-fact-service');
+const {extendRetailWithTraceability}=require('../domains/traceability/retail-traceability-extension');
 const {createPagedQueryService}=require('../domains/shared/paged-query-service');
 const {createFinanceDimensionsService}=require('../domains/finance/finance-dimensions');
 const {createFinanceService}=require('../domains/finance/finance-service');
@@ -68,6 +71,8 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const catalog=createCatalogService(common);
  const inventory=createInventoryService({...common,catalog});
  const costLedger=createInventoryCostLedger({...common,catalog,inventory});
+ const traceability=createTraceabilityService(common);
+ const commercialFacts=createCommercialFactService(common);
  const inventoryLogistics=createInventoryLogisticsService({...common,catalog,inventory});
  const inventoryOperations=createInventoryOperationsService({...common,inventory,catalog,events});
  const inventoryDepth=createInventoryDepthService({...common,inventory,catalog});
@@ -76,7 +81,7 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const finance=createFinanceService({...common,dimensions:financeDimensions});
  const pagedQueries=createPagedQueryService({db,contacts,catalog,finance});
  const supplierCredits=createSupplierCreditService({...common,finance,events});
- const procurement=createProcurementService({...common,contacts,catalog,inventory,finance,settings,events});
+ const procurement=createProcurementService({...common,contacts,catalog,inventory,finance,costLedger,settings,events});
  const procurementRequisitions=createRequisitionService({...common,catalog,inventory,events});
  const procurementQuotations=createQuotationService({...common,contacts,catalog,requisitions:procurementRequisitions,events});
  const procurementPricing=createPricingHistoryService({db});
@@ -84,9 +89,10 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const procurementApprovals=createApprovalService({...common,settings,events});
  const procurementAwards=createAwardService({...common,scoring:procurementScoring,requisitions:procurementRequisitions,procurement,approvals:procurementApprovals,events});
  const procurementReturns=createReturnService({...common,inventory,finance,supplierCredits,events});
- const salesAdmin=createSalesAdminService({...common,contacts,catalog,inventory,inventoryLogistics,finance,events});
+ const salesAdmin=createSalesAdminService({...common,contacts,catalog,inventory,inventoryLogistics,finance,costLedger,commercialFacts,events});
  const retailBase=createRetailOperationsService({...common,catalog,contacts,inventory,finance,salesAdmin});
- const retail=extendRetailWithServiceProducts({...common,catalog,retail:retailBase});
+ const retailTraced=extendRetailWithTraceability({...common,retail:retailBase,catalog,costLedger,commercialFacts});
+ const retail=extendRetailWithServiceProducts({...common,catalog,retail:retailTraced});
  const serviceOrders=createServiceOrderService({...common,contacts,catalog,inventory,inventoryReservations,finance});
  const manufacturing=createManufacturingService({...common,catalog,inventory,inventoryReservations,retail});
  const mrp=createMrpService({...common,inventory,inventoryReservations,procurementRequisitions,manufacturing});
@@ -106,6 +112,6 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const backup=persistent?createBackupService({db,dbPath:resolvedDbPath,backupDir:path.join(path.dirname(resolvedDbPath),'backups'),now}):null;
  logger.info('runtime.started',{persistent});
  let closed=false;
- return{db,events,auth,settings,companies,documents,integrations,contacts,catalog,pagedQueries,inventory,costLedger,inventoryLogistics,inventoryOperations,inventoryDepth,inventoryReservations,financeDimensions,finance,supplierCredits,procurement,procurementRequisitions,procurementQuotations,procurementPricing,procurementScoring,procurementApprovals,procurementAwards,procurementReturns,salesAdmin,retail,serviceOrders,manufacturing,mrp,fiscal,reports,operations,businessIntelligence,financeDocuments,financeManagement,bankStatements,financeReconciliation,financeRecurrences,financeAlerts,backup,logger,health,diagnostics,close(){if(closed)return;closed=true;logger.info('runtime.stopping');db.close();}};
+ return{db,events,auth,settings,companies,documents,integrations,contacts,catalog,pagedQueries,inventory,costLedger,traceability,commercialFacts,inventoryLogistics,inventoryOperations,inventoryDepth,inventoryReservations,financeDimensions,finance,supplierCredits,procurement,procurementRequisitions,procurementQuotations,procurementPricing,procurementScoring,procurementApprovals,procurementAwards,procurementReturns,salesAdmin,retail,serviceOrders,manufacturing,mrp,fiscal,reports,operations,businessIntelligence,financeDocuments,financeManagement,bankStatements,financeReconciliation,financeRecurrences,financeAlerts,backup,logger,health,diagnostics,close(){if(closed)return;closed=true;logger.info('runtime.stopping');db.close();}};
 }
 module.exports={createErpRuntime};
