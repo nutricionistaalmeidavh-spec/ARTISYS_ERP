@@ -10,7 +10,7 @@ const {createInventoryRouter}=require('./routers/inventory-router');
 const {createProcurementRouter}=require('./routers/procurement-router');
 const {createSalesAdminRouter}=require('./routers/sales-admin-router');
 const {createRetailRouter}=require('./routers/retail-router');
-const {createFiscalRouter}=require('./routers/fiscal-router');
+const {createFiscalRouter}=require('./routers/tax-router');
 const {createFinanceRouter}=require('./routers/finance-router');
 const {createReportingRouter}=require('./routers/reporting-router');const {createLanAccessService}=require('./lan-access-service');const {createLanRouter}=require('./routers/lan-router');
 function createLocalServer({runtime,host='127.0.0.1',port=4174,bodyLimitBytes=1024*1024}={}){
