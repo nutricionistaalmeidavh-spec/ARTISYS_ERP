@@ -16,7 +16,9 @@ CREATE TABLE IF NOT EXISTS inventory_cost_layers(
  original_quantity REAL NOT NULL CHECK(original_quantity>0),
  unit_cost_cents INTEGER NOT NULL CHECK(unit_cost_cents>=0),
  received_at TEXT NOT NULL,
- created_at TEXT NOT NULL
+ created_at TEXT NOT NULL,
+ idempotency_key TEXT NOT NULL,
+ UNIQUE(company_id,idempotency_key)
 );
 CREATE INDEX IF NOT EXISTS idx_cost_layers_company_product ON inventory_cost_layers(company_id,product_id,received_at,id);
 CREATE INDEX IF NOT EXISTS idx_cost_layers_source ON inventory_cost_layers(company_id,source_type,source_id,source_item_id);
