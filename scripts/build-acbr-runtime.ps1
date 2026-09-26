@@ -12,14 +12,19 @@ $FortesRoot = Join-Path $WorkRoot 'fortesreport-ce'
 function Invoke-Checked([string]$File, [string[]]$Arguments) {
   Write-Host "> $File $($Arguments -join ' ')"
   & $File @Arguments
-  if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE: $File" }
+  if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code ${LASTEXITCODE}: $File" }
 }
 
 try {
-  $LazBuild = (Get-Command lazbuild.exe -ErrorAction SilentlyContinue).Source
-  if (-not $LazBuild) { $LazBuild = (Get-Command lazbuild -ErrorAction SilentlyContinue).Source }
+  $LazBuild = $null
+  $command = Get-Command lazbuild.exe -ErrorAction SilentlyContinue
+  if ($command) { $LazBuild = $command.Source }
   if (-not $LazBuild) {
-    $candidate = Get-ChildItem 'C:\' -Filter lazbuild.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    $command = Get-Command lazbuild -ErrorAction SilentlyContinue
+    if ($command) { $LazBuild = $command.Source }
+  }
+  if (-not $LazBuild) {
+    $candidate = Get-ChildItem 'C:\lazarus' -Filter lazbuild.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($candidate) { $LazBuild = $candidate.FullName }
   }
   if (-not $LazBuild) { throw 'lazbuild nao encontrado. Instale Lazarus/FPC no runner antes de compilar o ACBr.' }
@@ -37,8 +42,8 @@ try {
   if (-not $fortesPackage) { throw 'Pacote Lazarus do FortesReport nao encontrado.' }
   Invoke-Checked $LazBuild @("--add-package-link=$($fortesPackage.FullName)")
 
-  $acbrPackages = Get-ChildItem (Join-Path $AcbrRoot 'Pacotes\Lazarus') -Filter '*.lpk' -Recurse | Sort-Object FullName
-  if (-not $acbrPackages.Count) { throw 'Pacotes Lazarus do ACBr nao encontrados.' }
+  $acbrPackages = @(Get-ChildItem (Join-Path $AcbrRoot 'Pacotes\Lazarus') -Filter '*.lpk' -Recurse | Sort-Object FullName)
+  if ($acbrPackages.Count -eq 0) { throw 'Pacotes Lazarus do ACBr nao encontrados.' }
   foreach ($package in $acbrPackages) {
     Invoke-Checked $LazBuild @("--add-package-link=$($package.FullName)")
   }
