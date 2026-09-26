@@ -19,6 +19,15 @@ Critério: **domínio/backend → persistência → API → UI → E2E do usuár
 | Estoque | Reservas manuais | sim | sim | sim | sim | saldo/RBAC | COBERTO |
 | Estoque | Liberar reserva | sim | sim | sim | sim | estado/RBAC | COBERTO |
 | Estoque | Consumir reserva | sim | sim | sim | indireto via venda + ação reservas | quantidade/estado | COBERTO |
+| Estoque | Endereçamento hierárquico | sim | sim | sim | sim via cadastro de local | tipo/pai/código | COBERTO |
+| Estoque | Lotes e validade | sim | sim | sim | sim | unicidade/RBAC | COBERTO |
+| Estoque | Números de série | sim | sim | sim | sim via rastreabilidade | unicidade/quantidade 1 | COBERTO |
+| Estoque | Posições rastreadas | sim | sim | sim | sim | saldo rastreado | COBERTO |
+| Estoque | FIFO/FEFO / plano de separação | sim | sim | política no cadastro + rastreabilidade | sim domínio/API | estoque insuficiente | COBERTO |
+| Estoque | Inventário cíclico / contagem cega / recontagem | sim | sim | sim | sim | pendência/recontagem | COBERTO |
+| Estoque | Perdas e avarias | sim | sim | sim | sim | saldo/RBAC | COBERTO |
+| Estoque | Estoque mínimo/alvo e reposição | sim | sim | sim | sim via analytics | validação | COBERTO |
+| Estoque | Curva ABC / sem giro / valorização | sim | sim | sim | sim via analytics | período | COBERTO |
 | Compras | Requisição: criar/listar | sim | sim | sim | sim | validação | COBERTO |
 | Compras | Requisição: editar | sim | sim | sim | sim | estado | COBERTO |
 | Compras | Requisição: cancelar | sim | sim | sim | sim | estado/motivo | COBERTO |
