@@ -45,12 +45,12 @@ try {
 
   $fortesPackage = Get-ChildItem $FortesRoot -Filter 'frce.lpk' -Recurse | Select-Object -First 1
   if (-not $fortesPackage) { throw 'Pacote Lazarus do FortesReport nao encontrado.' }
-  Invoke-Checked $LazBuild @("--add-package-link=$($fortesPackage.FullName)")
+  Invoke-Checked $LazBuild @('--add-package-link',$fortesPackage.FullName)
 
   $acbrPackages = @(Get-ChildItem (Join-Path $AcbrRoot 'Pacotes\Lazarus') -Filter '*.lpk' -Recurse | Sort-Object FullName)
   if ($acbrPackages.Count -eq 0) { throw 'Pacotes Lazarus do ACBr nao encontrados.' }
   foreach ($package in $acbrPackages) {
-    Invoke-Checked $LazBuild @("--add-package-link=$($package.FullName)")
+    Invoke-Checked $LazBuild @('--add-package-link',$package.FullName)
   }
 
   $monitorProject = Join-Path $AcbrRoot 'Projetos\ACBrMonitorPLUS\Lazarus\ACBrMonitor.lpi'
