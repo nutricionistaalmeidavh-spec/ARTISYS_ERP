@@ -35,7 +35,7 @@ function createOperationsRouter({runtime,sessions,bodyLimitBytes=1024*1024}={}){
    if((m=pathMatch(p,'/api/v1/ops/service-orders/:id/status'))&&req.method==='POST'){const x=await d();json(res,200,runtime.operations.setServiceOrderStatus(m.id,x.status,a));return true;}
    if((m=pathMatch(p,'/api/v1/ops/service-orders/:id/lines'))&&req.method==='POST'){json(res,201,runtime.serviceOrders.addLine(m.id,await d(),a));return true;}
    if((m=pathMatch(p,'/api/v1/ops/service-orders/:id/lines/:lineId'))&&req.method==='DELETE'){runtime.serviceOrders.removeLine(m.id,m.lineId,a);json(res,200,{removed:true});return true;}
-   if((m=pathMatch(p,'/api/v1/ops/service-orders/:id/parts/:lineId/consume'))&&req.method==='POST'){const x=await d();if(!String(x.idempotencyKey||'').trim())throw new Error('Chave de idempotencia obrigatoria.');json(res,200,runtime.serviceOrders.consumePart(m.id,m.lineId,x,a));return true;}
+   if((m=pathMatch(p,'/api/v1/ops/service-orders/:id/parts/:lineId/consume'))&&req.method==='POST'){json(res,200,runtime.serviceOrders.consumePart(m.id,m.lineId,await d(),a));return true;}
    if((m=pathMatch(p,'/api/v1/ops/service-orders/:id/approve'))&&req.method==='POST'){json(res,200,runtime.serviceOrders.approve(m.id,await d(),a));return true;}
    if((m=pathMatch(p,'/api/v1/ops/service-orders/:id/retry-parts'))&&req.method==='POST'){json(res,200,runtime.serviceOrders.retryParts(m.id,a));return true;}
    if((m=pathMatch(p,'/api/v1/ops/service-orders/:id/start'))&&req.method==='POST'){json(res,200,runtime.serviceOrders.start(m.id,a));return true;}

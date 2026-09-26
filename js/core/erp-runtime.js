@@ -22,11 +22,20 @@ const {createInventoryOperationsService}=require('../domains/inventory/inventory
 const {createInventoryDepthService}=require('../domains/inventory/inventory-depth-service');
 const {createInventoryReservationService}=require('../domains/inventory/inventory-reservation-service');
 const {createInventoryCostLedger}=require('../domains/traceability/inventory-cost-ledger');
+const {extendCostLedgerWithLegacyCompatibility}=require('../domains/traceability/legacy-cost-ledger-compatibility');
+const {createCostLedgerAdjustmentService}=require('../domains/traceability/cost-ledger-adjustment-service');
+const {extendCostAdjustmentsWithLegacyCompatibility}=require('../domains/traceability/cost-adjustment-legacy-compatibility');
 const {createTraceabilityService}=require('../domains/traceability/traceability-service');
 const {createCommercialFactService}=require('../domains/traceability/commercial-fact-service');
+const {extendInventoryOperationsWithTraceability}=require('../domains/traceability/inventory-operations-traceability-extension');
+const {extendProcurementReturnsWithTraceability}=require('../domains/traceability/procurement-return-traceability-extension');
 const {extendRetailWithTraceability}=require('../domains/traceability/retail-traceability-extension');
+const {extendRetailReturnsWithTraceability}=require('../domains/traceability/retail-return-traceability-extension');
 const {extendServiceOrdersWithTraceability}=require('../domains/traceability/service-order-traceability-extension');
 const {extendManufacturingWithTraceability}=require('../domains/traceability/manufacturing-traceability-extension');
+const {extendReportingWithTraceability}=require('../domains/traceability/reporting-traceability-extension');
+const {createProductPerformanceService}=require('../domains/traceability/product-performance-service');
+const {createLegacyBackfillService}=require('../domains/traceability/legacy-backfill-service');
 const {createPagedQueryService}=require('../domains/shared/paged-query-service');
 const {createFinanceDimensionsService}=require('../domains/finance/finance-dimensions');
 const {createFinanceService}=require('../domains/finance/finance-service');
@@ -50,12 +59,13 @@ const {createServiceOrderService}=require('../domains/services/service-order-ser
 const {createManufacturingService}=require('../domains/manufacturing/manufacturing-service');
 const {createMrpService}=require('../domains/manufacturing/mrp-service');
 const {createFiscalService}=require('../domains/tax/tax-service');
+const {createFiscalRuntimeService}=require('../domains/tax/fiscal-runtime-service');
 const {createReportingService}=require('../domains/reports/reporting-service');
 const {createBusinessIntelligenceService}=require('../domains/reports/business-intelligence-service');
 const {createFinanceDocumentService}=require('../domains/reports/finance-document-service');
 const {createFinanceManagementService}=require('../domains/finance/finance-management');
 
-function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),idFactory}={}){
+function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),idFactory,fiscalRuntimeConfig=null}={}){
  const persistent=dbPath!==':memory:';
  const resolvedDbPath=persistent?path.resolve(dbPath):dbPath;
  if(persistent)fs.mkdirSync(path.dirname(resolvedDbPath),{recursive:true});
@@ -72,11 +82,16 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const contacts=createContactService(common);
  const catalog=createCatalogService(common);
  const inventory=createInventoryService({...common,catalog});
- const costLedger=createInventoryCostLedger({...common,catalog,inventory});
+ const costLedgerBase=createInventoryCostLedger({...common,catalog,inventory});
+ const costLedger=extendCostLedgerWithLegacyCompatibility({db,costLedger:costLedgerBase,catalog});
+ const commercialCostLedger={...costLedger,allocateOutflow:(input={},actor=null)=>costLedger.allocateOutflow({...input,allowLegacyFallback:true},actor)};
+ const costAdjustmentsBase=createCostLedgerAdjustmentService(common);
+ const costAdjustments=extendCostAdjustmentsWithLegacyCompatibility({costAdjustments:costAdjustmentsBase,costLedger});
  const traceability=createTraceabilityService(common);
  const commercialFacts=createCommercialFactService(common);
  const inventoryLogistics=createInventoryLogisticsService({...common,catalog,inventory});
- const inventoryOperations=createInventoryOperationsService({...common,inventory,catalog,events});
+ const inventoryOperationsBase=createInventoryOperationsService({...common,inventory,catalog,events});
+ const inventoryOperations=extendInventoryOperationsWithTraceability({db,inventoryOperations:inventoryOperationsBase,costLedger,costAdjustments});
  const inventoryDepth=createInventoryDepthService({...common,inventory,catalog});
  const inventoryReservations=createInventoryReservationService({...common,inventory,catalog});
  const financeDimensions=createFinanceDimensionsService(common);
@@ -90,20 +105,26 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const procurementScoring=createSupplierScoringService({requisitions:procurementRequisitions,quotations:procurementQuotations,settings,now});
  const procurementApprovals=createApprovalService({...common,settings,events});
  const procurementAwards=createAwardService({...common,scoring:procurementScoring,requisitions:procurementRequisitions,procurement,approvals:procurementApprovals,events});
- const procurementReturns=createReturnService({...common,inventory,finance,supplierCredits,events});
- const salesAdmin=createSalesAdminService({...common,contacts,catalog,inventory,inventoryLogistics,finance,costLedger,commercialFacts,events});
+ const procurementReturnsBase=createReturnService({...common,inventory,finance,supplierCredits,events});
+ const procurementReturns=extendProcurementReturnsWithTraceability({db,procurementReturns:procurementReturnsBase,costAdjustments});
+ const salesAdmin=createSalesAdminService({...common,contacts,catalog,inventory,inventoryLogistics,finance,costLedger:commercialCostLedger,commercialFacts,events});
  const retailBase=createRetailOperationsService({...common,catalog,contacts,inventory,finance,salesAdmin});
- const retailTraced=extendRetailWithTraceability({...common,retail:retailBase,catalog,costLedger,commercialFacts});
- const retail=extendRetailWithServiceProducts({...common,catalog,retail:retailTraced});
+ const retailTraced=extendRetailWithTraceability({...common,retail:retailBase,catalog,costLedger:commercialCostLedger,commercialFacts});
+ const retailReturns=extendRetailReturnsWithTraceability({...common,retail:retailTraced,costAdjustments,commercialFacts});
+ const retail=extendRetailWithServiceProducts({...common,catalog,retail:retailReturns});
  const serviceOrdersBase=createServiceOrderService({...common,contacts,catalog,inventory,inventoryReservations,finance});
- const serviceOrders=extendServiceOrdersWithTraceability({...common,serviceOrders:serviceOrdersBase,costLedger,commercialFacts});
+ const serviceOrders=extendServiceOrdersWithTraceability({...common,serviceOrders:serviceOrdersBase,costLedger:commercialCostLedger,commercialFacts});
  const manufacturingBase=createManufacturingService({...common,catalog,inventory,inventoryReservations,retail});
- const manufacturing=extendManufacturingWithTraceability({...common,manufacturing:manufacturingBase,costLedger});
+ const manufacturing=extendManufacturingWithTraceability({...common,manufacturing:manufacturingBase,costLedger:commercialCostLedger});
  const mrp=createMrpService({...common,inventory,inventoryReservations,procurementRequisitions,manufacturing});
  const fiscal=createFiscalService({...common,catalog,retail,salesAdmin});
- const reports=createReportingService({db,now});
+ const fiscalRuntime=createFiscalRuntimeService({...common,fiscal,catalog,contacts,retail,salesAdmin,...(fiscalRuntimeConfig||{})});
+ const reportsBase=createReportingService({db,now});
+ const reports=extendReportingWithTraceability({db,reports:reportsBase});
  const operations=createOperationsSuite(common);
- const businessIntelligence=createBusinessIntelligenceService({db,reports,inventoryDepth,mrp,now});
+ const productPerformance=createProductPerformanceService({db});
+ const legacyBackfill=createLegacyBackfillService({db,catalog,inventory,costLedger,commercialFacts});
+ const businessIntelligence=createBusinessIntelligenceService({db,reports,inventoryDepth,mrp,productPerformance,now});
  const financeDocuments=createFinanceDocumentService({db,finance,now});
  const financeManagement=createFinanceManagementService({db,finance,reports,now});
  const bankStatements=createStatementImport({...common,finance});
@@ -116,6 +137,6 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const backup=persistent?createBackupService({db,dbPath:resolvedDbPath,backupDir:path.join(path.dirname(resolvedDbPath),'backups'),now}):null;
  logger.info('runtime.started',{persistent});
  let closed=false;
- return{db,events,auth,settings,companies,documents,integrations,contacts,catalog,pagedQueries,inventory,costLedger,traceability,commercialFacts,inventoryLogistics,inventoryOperations,inventoryDepth,inventoryReservations,financeDimensions,finance,supplierCredits,procurement,procurementRequisitions,procurementQuotations,procurementPricing,procurementScoring,procurementApprovals,procurementAwards,procurementReturns,salesAdmin,retail,serviceOrders,manufacturing,mrp,fiscal,reports,operations,businessIntelligence,financeDocuments,financeManagement,bankStatements,financeReconciliation,financeRecurrences,financeAlerts,backup,logger,health,diagnostics,close(){if(closed)return;closed=true;logger.info('runtime.stopping');db.close();}};
+ return{db,events,auth,settings,companies,documents,integrations,contacts,catalog,pagedQueries,inventory,costLedger,costAdjustments,traceability,commercialFacts,productPerformance,legacyBackfill,inventoryLogistics,inventoryOperations,inventoryDepth,inventoryReservations,financeDimensions,finance,supplierCredits,procurement,procurementRequisitions,procurementQuotations,procurementPricing,procurementScoring,procurementApprovals,procurementAwards,procurementReturns,salesAdmin,retail,serviceOrders,manufacturing,mrp,fiscal,fiscalRuntime,reports,operations,businessIntelligence,financeDocuments,financeManagement,bankStatements,financeReconciliation,financeRecurrences,financeAlerts,backup,logger,health,diagnostics,close(){if(closed)return;closed=true;logger.info('runtime.stopping');db.close();}};
 }
 module.exports={createErpRuntime};

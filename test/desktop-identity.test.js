@@ -13,14 +13,18 @@ test('desktop has standalone ArtiSys ERP identity and approved navigation',()=>{
   for(const forbidden of ['Terminal PDV','Balcão','Comanda','Restaurante','Abrir caixa']) assert.doesNotMatch(html,new RegExp(forbidden,'i'));
 });
 
-test('desktop shell starts only a loopback ERP server and exposes no PDV hardware bridge',()=>{
+test('desktop shell keeps ERP services loopback-only and exposes no PDV hardware bridge',()=>{
   const main=read('desktop/main.cjs');
   const preload=read('desktop/preload.cjs');
   assert.match(main,/127\.0\.0\.1/);
   assert.match(main,/createErpRuntime/);
   assert.match(main,/createLocalServer/);
+  assert.match(main,/createFiscalSidecarRuntime/);
   assert.doesNotMatch(main,/https?:\/\/(?!127\.0\.0\.1|localhost)/i);
-  for(const forbidden of ['serialport','cash','fiscal','restaurant','pizzeria','self-service']) assert.doesNotMatch(preload,new RegExp(forbidden,'i'));
+  for(const forbidden of ['serialport','cash-drawer','hardware-bridge','receipt-actions','restaurant','pizzeria','self-service','artisys:hardware']) assert.doesNotMatch(preload,new RegExp(forbidden,'i'));
+  assert.match(preload,/getFiscalCertificateStatus/);
+  assert.match(preload,/erp:fiscal-certificate-status/);
+  assert.match(preload,/erp:fiscal-certificate-import/);
 });
 
 test('import bridge constrains local OFX input',()=>{
