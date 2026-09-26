@@ -44,12 +44,13 @@ const {createServiceOrderService}=require('../domains/services/service-order-ser
 const {createManufacturingService}=require('../domains/manufacturing/manufacturing-service');
 const {createMrpService}=require('../domains/manufacturing/mrp-service');
 const {createFiscalService}=require('../domains/tax/tax-service');
+const {createFiscalRuntimeService}=require('../domains/tax/fiscal-runtime-service');
 const {createReportingService}=require('../domains/reports/reporting-service');
 const {createBusinessIntelligenceService}=require('../domains/reports/business-intelligence-service');
 const {createFinanceDocumentService}=require('../domains/reports/finance-document-service');
 const {createFinanceManagementService}=require('../domains/finance/finance-management');
 
-function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),idFactory}={}){
+function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),idFactory,fiscalRuntimeConfig=null}={}){
  const persistent=dbPath!==':memory:';
  const resolvedDbPath=persistent?path.resolve(dbPath):dbPath;
  if(persistent)fs.mkdirSync(path.dirname(resolvedDbPath),{recursive:true});
@@ -89,6 +90,7 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const manufacturing=createManufacturingService({...common,catalog,inventory,inventoryReservations,retail});
  const mrp=createMrpService({...common,inventory,inventoryReservations,procurementRequisitions,manufacturing});
  const fiscal=createFiscalService({...common,catalog,retail,salesAdmin});
+ const fiscalRuntime=createFiscalRuntimeService({...common,fiscal,catalog,contacts,retail,salesAdmin,...(fiscalRuntimeConfig||{})});
  const reports=createReportingService({db,now});
  const operations=createOperationsSuite(common);
  const businessIntelligence=createBusinessIntelligenceService({db,reports,inventoryDepth,mrp,now});
@@ -104,6 +106,6 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const backup=persistent?createBackupService({db,dbPath:resolvedDbPath,backupDir:path.join(path.dirname(resolvedDbPath),'backups'),now}):null;
  logger.info('runtime.started',{persistent});
  let closed=false;
- return{db,events,auth,settings,companies,documents,integrations,contacts,catalog,pagedQueries,inventory,inventoryLogistics,inventoryOperations,inventoryDepth,inventoryReservations,financeDimensions,finance,supplierCredits,procurement,procurementRequisitions,procurementQuotations,procurementPricing,procurementScoring,procurementApprovals,procurementAwards,procurementReturns,salesAdmin,retail,serviceOrders,manufacturing,mrp,fiscal,reports,operations,businessIntelligence,financeDocuments,financeManagement,bankStatements,financeReconciliation,financeRecurrences,financeAlerts,backup,logger,health,diagnostics,close(){if(closed)return;closed=true;logger.info('runtime.stopping');db.close();}};
+ return{db,events,auth,settings,companies,documents,integrations,contacts,catalog,pagedQueries,inventory,inventoryLogistics,inventoryOperations,inventoryDepth,inventoryReservations,financeDimensions,finance,supplierCredits,procurement,procurementRequisitions,procurementQuotations,procurementPricing,procurementScoring,procurementApprovals,procurementAwards,procurementReturns,salesAdmin,retail,serviceOrders,manufacturing,mrp,fiscal,fiscalRuntime,reports,operations,businessIntelligence,financeDocuments,financeManagement,bankStatements,financeReconciliation,financeRecurrences,financeAlerts,backup,logger,health,diagnostics,close(){if(closed)return;closed=true;logger.info('runtime.stopping');db.close();}};
 }
 module.exports={createErpRuntime};

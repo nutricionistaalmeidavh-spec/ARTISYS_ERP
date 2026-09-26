@@ -47,7 +47,12 @@
   },
   "build": {
     "appId":"com.artisys.erp","productName":"ArtiSys ERP","asar":true,"directories":{"output":"dist"},
-    "files":["desktop/**/*","frontend/dist/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/services/**/*","js/domains/manufacturing/**/*","js/domains/finance/**/*","js/domains/reports/**/*","server/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
+    "files":["desktop/**/*","frontend/dist/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/services/**/*","js/domains/manufacturing/**/*","js/domains/finance/**/*","js/domains/reports/**/*","js/domains/tax/**/*","server/**/*","server/fiscal-sidecar/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
+    "extraResources":[
+      {"from":"server/fiscal-sidecar","to":"fiscal/sidecar","filter":["**/*"]},
+      {"from":"fiscal-runtime/acbr","to":"fiscal/acbr","filter":["**/*"]},
+      {"from":"fiscal-runtime/manifest.json","to":"fiscal/manifest.json"}
+    ],
     "win":{"target":[{"target":"nsis","arch":["x64"]}],"artifactName":"ArtiSys-ERP-${version}-${arch}-Setup.${ext}"},
     "nsis":{"oneClick":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"createStartMenuShortcut":true,"deleteAppDataOnUninstall":false}
   }
