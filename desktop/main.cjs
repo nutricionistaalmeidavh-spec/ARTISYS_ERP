@@ -5,11 +5,21 @@ const {createErpRuntime}=require('../js/core/erp-runtime');
 const {createLocalServer}=require('../server/local-server');
 const {registerImportBridge}=require('./import-bridge.cjs');
 const {registerDocumentBridge}=require('./document-bridge.cjs');
-const {registerAttachmentBridge}=require('./attachment-bridge.cjs');const {createUpdateService}=require('./update-service.cjs');
-let runtime=null;let localServer=null;let baseUrl=null;let mainWindow=null;let updater=null;
+const {registerAttachmentBridge}=require('./attachment-bridge.cjs');
+const {createUpdateService}=require('./update-service.cjs');
+const {createFiscalSidecarRuntime}=require('./fiscal-sidecar-runtime.cjs');
+const {resolveFiscalRuntimePaths}=require('./fiscal-runtime-paths.cjs');
+let runtime=null;let localServer=null;let baseUrl=null;let mainWindow=null;let updater=null;let fiscalSidecar=null;
 async function boot(){
   const dbPath=process.env.ERP_DB_PATH?path.resolve(process.env.ERP_DB_PATH):path.join(app.getPath('userData'),'data','artisys-erp.sqlite');
-  runtime=createErpRuntime({dbPath});
+  let fiscalRuntimeConfig=null;
+  try{
+    const fiscalPaths=resolveFiscalRuntimePaths({isPackaged:app.isPackaged,resourcesPath:process.resourcesPath});
+    fiscalSidecar=createFiscalSidecarRuntime({entryPath:fiscalPaths.sidecarEntry,env:process.env,onError:error=>console.error('[fiscal-sidecar]',error?.message||error)});
+    const fiscalConnection=await fiscalSidecar.start();
+    fiscalRuntimeConfig={sidecarBaseUrl:fiscalConnection.baseUrl,sidecarAuthToken:fiscalSidecar.getAuthToken(),focusToken:process.env.ARTISYS_FOCUS_TOKEN||null};
+  }catch(error){console.error('[fiscal-sidecar] Runtime local indisponivel:',error?.message||error);try{await fiscalSidecar?.stop();}catch{}fiscalSidecar=null;}
+  runtime=createErpRuntime({dbPath,fiscalRuntimeConfig});
   if(process.env.ERP_E2E==='1'&&runtime.auth.countUsers()===0){runtime.auth.createUser({username:process.env.ERP_E2E_USERNAME||'admin',name:'E2E Admin',role:'admin',password:process.env.ERP_E2E_PASSWORD||'admin123'});}
   localServer=createLocalServer({runtime,host:'127.0.0.1',port:0});
   const address=await localServer.start();
@@ -26,4 +36,4 @@ async function boot(){
 }
 app.whenReady().then(boot).catch(error=>{console.error(error);app.exit(1);});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
-app.on('before-quit',event=>{if(!localServer)return;event.preventDefault();const server=localServer;localServer=null;Promise.resolve(server.stop()).catch(()=>{}).finally(()=>{try{runtime?.close();}catch{}runtime=null;app.exit(0);});});
+app.on('before-quit',event=>{if(!localServer&&!fiscalSidecar)return;event.preventDefault();const server=localServer,sidecar=fiscalSidecar;localServer=null;fiscalSidecar=null;Promise.allSettled([server?.stop(),sidecar?.stop()]).finally(()=>{try{runtime?.close();}catch{}runtime=null;app.exit(0);});});
