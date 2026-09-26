@@ -1,124 +1,71 @@
-# ArtiSys ERP — Serviços / Ordens de Serviço
+# ArtiSys ERP — Evolução de Serviços / Ordens de Serviço
 
 Data: 2026-09-26
-Base de referência: `main` em `3f21f3aa2ea384290db2fd37835ed50dba4ee3c7`
-Branch de trabalho: `feat/service-orders-manufacturing`
+Base revisada: `main` em `c0af43356be0cebe2b51abecd6a62c68907fbec0`
+Branch: `feat/service-orders-manufacturing`
 
 ## Objetivo
 
-Adicionar ao ArtiSys ERP um módulo operacional de Serviços / Ordens de Serviço (OS) adequado a PMEs, integrado ao cadastro de clientes, estoque, financeiro, documentos, usuários, auditoria e multiempresa, sem duplicar funcionalidades já existentes e sem introduzir dependências externas obrigatórias.
+Evoluir a infraestrutura de Ativos / Ordens de Serviço que já existe na `main` para um módulo operacional completo de serviços, sem recriar entidades, workflows ou infraestrutura já incorporados ao ERP.
 
-O módulo deve cobrir o ciclo completo de uma OS: cadastro de serviços, abertura, orçamento, aprovação, reserva de peças, execução, consumo de materiais, conclusão, geração de conta a receber e emissão de documento não fiscal da OS.
+A `main` atual já contém `assets`, `service_orders`, `maintenance_plans`, `maintenance_history`, filiais, workflows genéricos, aprovações, alertas, notificações, tabelas de preço, BI e projetos. Esta entrega deve reutilizar essas estruturas.
 
-## Escopo
+## Reuso obrigatório da main atual
 
-Incluído:
+Não criar novamente:
 
-- catálogo de serviços;
-- ativos/equipamentos opcionais vinculados ao cliente;
-- abertura e edição de OS;
-- técnico/responsável;
-- problema relatado, diagnóstico e observações;
-- linhas de serviço e linhas de peças;
-- orçamento e aprovação;
-- reserva de peças em estoque;
-- estado `WAITING_PARTS` para OS aprovada com falta de material;
-- execução da OS;
-- consumo das peças reservadas;
-- liberação do saldo de reserva não consumido;
-- conclusão e cancelamento;
-- geração idempotente de conta a receber na conclusão;
-- anexos usando o serviço de documentos existente;
-- histórico/auditoria;
-- listagem, busca, filtros e paginação;
-- impressão/PDF não fiscal da OS;
-- isolamento por empresa;
-- API e tela React;
-- testes de domínio, API e E2E.
+- `assets`;
+- `service_orders`;
+- `maintenance_plans`;
+- `maintenance_history`;
+- filiais (`company_branches`);
+- workflows genéricos;
+- aprovações genéricas;
+- alertas operacionais;
+- notificações;
+- tabelas de preço;
+- dashboards/BI;
+- armazenamento de documentos;
+- infraestrutura de impressão/PDF.
 
-Fora do escopo:
+A implementação deve evoluir os serviços existentes e manter compatibilidade com `/api/v1/ops/assets`, `/api/v1/ops/service-orders` e manutenção.
 
-- NFS-e;
-- contratos de manutenção recorrente;
-- agenda/calendário avançado de técnicos;
-- roteirização de equipes externas;
-- assinatura eletrônica;
-- portal do cliente;
-- garantia/RMA avançado;
-- integração com WhatsApp ou CRM;
-- alterações no Fiscal Core atual de NF-e/NFC-e.
+## Catálogo de serviços
 
-## Arquitetura
+Não criar tabela paralela de serviços.
 
-Criar um domínio isolado em `js/domains/services/`.
+Reutilizar `products` como catálogo vendável e acrescentar suporte a `product_type='SERVICE'`.
 
-Componentes previstos:
+Regras:
 
-- `service-catalog-service.js`: catálogo de serviços;
-- `customer-asset-service.js`: ativos/equipamentos do cliente;
-- `service-order-service.js`: ciclo de vida da OS;
-- `service-order-document-service.js`: documento imprimível/PDF não fiscal da OS;
-- `server/routers/service-orders-router.js`: API HTTP;
-- `frontend/src/pages/ServiceOrdersPage.tsx`: UI React;
-- migration dedicada `120-service-orders.js`.
+- serviço usa `trackStock=false`;
+- `salePriceCents` continua sendo o preço padrão;
+- tabelas de preço existentes podem ser aplicadas a serviços;
+- `attributes_json` pode guardar metadados como duração estimada e especialidade;
+- produto `SERVICE` não participa de BOM nem de reserva de estoque;
+- os tipos já existentes (`STANDARD`, `VARIANT`, `KIT`, `MANUFACTURED`) permanecem válidos.
 
-A integração com estoque não deve acessar tabelas de reserva diretamente. Como OS e Produção precisam da mesma capacidade, será criado um serviço genérico de reservas em `js/domains/inventory/inventory-reservation-service.js`, operando sobre a tabela `inventory_reservations` já existente.
+## Ativos
 
-Esse serviço será infraestrutura compartilhada e não substituirá, nesta entrega, os fluxos internos já existentes de reservas de vendas administrativas. A migration poderá acrescentar metadados aditivos à tabela existente, sem quebrar consumidores atuais.
+Reutilizar `assets`.
 
-## Modelo de dados
+A migration compartilhada deve adicionar apenas o que falta para uso em OS de cliente:
 
-### `service_catalog_items`
+- `customer_id` opcional referenciando `contacts`;
+- índice por `company_id, customer_id`.
 
-Campos mínimos:
+Marca, modelo e demais dados específicos continuam em `metadata_json`; não criar uma segunda tabela de equipamentos.
 
-- `id`;
-- `company_id`;
-- `code`;
-- `name`;
-- `description`;
-- `unit`;
-- `default_price_cents`;
-- `estimated_minutes`;
-- `active`;
-- `created_at`;
-- `updated_at`.
+## Ordens de serviço
 
-Regra: `code` é único por empresa quando preenchido.
+Reutilizar `service_orders` como cabeçalho.
 
-### `customer_assets`
+Adicionar de forma aditiva os campos operacionais ausentes:
 
-Campos mínimos:
-
-- `id`;
-- `company_id`;
-- `customer_id`;
-- `name`;
-- `brand`;
-- `model`;
-- `serial_number`;
-- `notes`;
-- `active`;
-- `created_at`;
-- `updated_at`.
-
-O ativo é opcional para a OS. Não se cria um novo cadastro de clientes: `customer_id` referencia o contato já existente.
-
-### `service_orders`
-
-Campos mínimos:
-
-- `id`;
-- `company_id`;
-- `customer_id`;
-- `asset_id` opcional;
 - `location_id`;
 - `technician_user_id` opcional;
-- `status`;
-- `problem_description`;
 - `diagnosis`;
 - `notes`;
-- `due_at` opcional;
 - `approved_at`;
 - `started_at`;
 - `completed_at`;
@@ -127,50 +74,49 @@ Campos mínimos:
 - `service_total_cents`;
 - `parts_total_cents`;
 - `total_cents`;
-- `receivable_entry_id` opcional;
-- `idempotency_key` para conclusão/faturamento;
-- `created_by`;
-- `created_at`;
-- `updated_at`.
+- `receivable_entry_id`;
+- `completion_idempotency_key`.
 
-### `service_order_lines`
+Preservar os campos atuais (`branch_id`, `asset_id`, `customer_id`, `number`, `title`, `description`, `priority`, `opened_at`, `due_at`, `closed_at`, `history_json`).
 
-Tabela única para evitar duplicação entre serviço e peça.
+Registros legados com status `CLOSED` permanecem legíveis e são tratados como terminal/concluído. Novas OS usam o ciclo de estados definido abaixo.
+
+## Linhas da OS
+
+Criar apenas a estrutura que ainda não existe: `service_order_lines`.
 
 Campos mínimos:
 
 - `id`;
 - `service_order_id`;
-- `line_type` em `SERVICE` ou `PART`;
-- `service_catalog_item_id` opcional;
-- `product_id` opcional;
+- `product_id`;
+- `line_type` (`SERVICE` ou `PART`);
 - `description_snapshot`;
 - `quantity`;
 - `unit_price_cents`;
-- `estimated_minutes` opcional;
 - `reservation_id` opcional;
-- `consumed_quantity` para peças;
+- `consumed_quantity`;
 - `created_at`;
 - `updated_at`.
 
 Regras:
 
-- linha `SERVICE` exige `service_catalog_item_id` e não possui reserva;
-- linha `PART` exige `product_id`;
-- preço e descrição ficam em snapshot na OS para preservar histórico;
-- peças sem controle de estoque não precisam de reserva, mas continuam registradas na OS.
+- `SERVICE`: produto precisa ter `product_type='SERVICE'`, sem reserva;
+- `PART`: produto normal; se `trackStock=true`, usa reserva;
+- preço e descrição são snapshot para preservar o orçamento;
+- tabelas de preço existentes podem fornecer `unit_price_cents` antes do snapshot.
 
-### Histórico
+## Reserva de estoque compartilhada
 
-A auditoria global existente continuará sendo a fonte oficial de trilha. Não é necessário criar uma segunda tabela de histórico se as transições e alterações relevantes forem registradas por `writeAudit`.
+A tabela `inventory_reservations` já existe. Não criar uma segunda estrutura.
 
-## Serviço genérico de reservas de estoque
+Criar `js/domains/inventory/inventory-reservation-service.js` como contrato genérico para OS e Produção.
 
-### Objetivo
+A migration compartilhada adiciona, se ainda ausente:
 
-Expor uma interface reutilizável para OS e Produção usando `inventory_reservations`.
+- `consumed_quantity REAL NOT NULL DEFAULT 0`.
 
-Métodos conceituais:
+Métodos:
 
 - `getAvailable(productId, locationId)`;
 - `reserve(input, actor)`;
@@ -179,25 +125,27 @@ Métodos conceituais:
 - `getReservation(id)`;
 - `listReservations(filters)`.
 
-### Disponibilidade
+Disponibilidade:
 
-`available = saldo físico - quantidade ativa ainda não consumida de todas as reservas`.
+`saldo físico - soma do saldo remanescente de todas as reservas ACTIVE`.
 
-Reservas de vendas já existentes devem reduzir a disponibilidade vista por OS e Produção.
+Assim, reservas de vendas, OS e Produção concorrem pelo mesmo estoque.
 
-### Compatibilidade
+Consumo da reserva e movimento físico devem ser atômicos.
 
-Adicionar, se necessário, `consumed_quantity REAL NOT NULL DEFAULT 0` a `inventory_reservations`. A semântica dos estados existentes permanece:
+## Serviço de domínio
 
-- `ACTIVE`: saldo reservado ainda disponível;
-- `CONSUMED`: reserva totalmente consumida;
-- `RELEASED`: saldo remanescente liberado.
+Criar `js/domains/services/service-order-service.js` para evoluir a lógica existente.
 
-O consumo deve executar movimento de estoque e atualização da reserva na mesma transação do banco.
+Não criar um segundo armazenamento de OS.
 
-## Ciclo de vida da OS
+O `operations-suite` deve delegar suas operações legadas de OS ao novo serviço, preservando compatibilidade da API antiga e impedindo que `setServiceOrderStatus` continue burlando as regras do novo ciclo.
 
-Estados persistidos:
+Manutenção preventiva continua no `operations-suite` existente e passa a poder abrir/associar uma OS operacional quando necessário, sem nova tabela.
+
+## Ciclo de vida
+
+Novos estados:
 
 - `OPEN`;
 - `APPROVED`;
@@ -206,234 +154,194 @@ Estados persistidos:
 - `COMPLETED`;
 - `CANCELLED`.
 
-### `OPEN`
+`CLOSED` é aceito somente como status legado terminal.
 
-- OS editável;
-- serviços, peças, técnico e diagnóstico podem ser alterados;
-- nenhum recebível é criado;
-- nenhuma peça é consumida;
-- orçamento é calculado a partir das linhas.
+### OPEN
+
+- cabeçalho e linhas editáveis;
+- técnico pode ser definido;
+- nenhum recebível;
+- nenhum consumo físico.
 
 ### Aprovação
 
-A ação `approve`:
+`approve`:
 
-1. valida cliente, local e linhas;
-2. congela a versão comercial atual do orçamento;
-3. tenta reservar todas as peças controladas em estoque;
-4. registra `approved_at`;
-5. vai para `APPROVED` se todas as peças forem reservadas;
-6. vai para `WAITING_PARTS` se uma ou mais peças não puderem ser reservadas.
+1. valida cliente, filial/local e linhas;
+2. congela quantidades e preços do orçamento;
+3. tenta reservar as peças controladas em estoque;
+4. se todas forem cobertas, vai para `APPROVED`;
+5. se houver falta, vai para `WAITING_PARTS` e retorna shortages.
 
-A aprovação não pode deixar reserva parcial inconsistente: reservas bem-sucedidas de outras linhas são mantidas e identificadas; as linhas faltantes permanecem sem reserva. A resposta deve listar faltas por produto e quantidade.
+Não criar tabela de aprovação própria. Aprovação interna sofisticada, se configurada futuramente, usa `generic_approvals` já existente.
 
-### `WAITING_PARTS`
+### WAITING_PARTS
 
-- representa OS comercialmente aprovada, porém bloqueada por material;
-- ação `retry-parts` tenta reservar somente as linhas pendentes;
-- quando todas as peças necessárias estiverem reservadas, o status passa para `APPROVED`;
-- não permite iniciar a execução enquanto houver falta.
+- orçamento permanece aprovado;
+- não pode iniciar;
+- `retry-parts` tenta apenas linhas pendentes;
+- quando todas forem reservadas, vai para `APPROVED`;
+- falta de peça pode gerar `operational_alert` existente, sem nova tabela de alertas.
 
-### `APPROVED`
+### APPROVED
 
-- orçamento aprovado;
-- peças necessárias reservadas;
-- ação `start` muda para `IN_PROGRESS`.
+- preços e quantidades comerciais congelados;
+- todas as peças necessárias estão reservadas;
+- `start` muda para `IN_PROGRESS`.
 
-### `IN_PROGRESS`
+### IN_PROGRESS
 
-- permite registrar consumo parcial de peças reservadas;
-- consumo efetua movimento negativo no estoque com `source_type='service-order'` e `source_id` da OS;
-- não permite consumir quantidade acima do saldo reservado;
-- técnico pode atualizar diagnóstico e observações operacionais;
-- preços aprovados não são alterados nesta fase.
+- permite consumo parcial das reservas;
+- movimento usa `source_type='service-order'` e `source_id=<os-id>`;
+- diagnóstico e observações operacionais podem ser atualizados;
+- peça adicional exige ação explícita `add-extra-part`: cria uma nova linha, tenta reservar e registra auditoria.
 
-### Conclusão
+### COMPLETED
 
-A ação `complete`:
+`complete`:
 
-1. valida status `IN_PROGRESS`;
-2. libera toda quantidade reservada que não foi consumida;
-3. recalcula totais a partir das linhas aprovadas;
-4. cria uma única conta a receber em `finance` com `source_type='service-order'` e `source_id` da OS;
+1. exige `IN_PROGRESS`;
+2. libera reservas remanescentes;
+3. totaliza serviços aprovados e apenas peças efetivamente consumidas;
+4. cria exatamente um `RECEIVABLE` no financeiro;
 5. grava `receivable_entry_id`;
-6. marca `COMPLETED` e `completed_at`;
+6. marca `COMPLETED`, `completed_at` e `closed_at`;
 7. registra auditoria.
 
-A operação deve ser idempotente. Repetir a conclusão não pode gerar segundo recebível.
+A conclusão é idempotente.
 
-O valor cobrado é o valor aprovado das linhas da OS. Consumo físico menor que a quantidade orçada deve exigir ajuste explícito antes do início; após `APPROVED`, valores e quantidades comerciais ficam bloqueados para evitar divergência entre orçamento e cobrança.
+Peça reservada e não consumida não é cobrada.
 
-### Cancelamento
+### CANCELLED
 
 - exige motivo;
-- permitido em `OPEN`, `APPROVED` ou `WAITING_PARTS`;
-- `IN_PROGRESS` só pode ser cancelada por `admin` ou `manager` e deve liberar reservas remanescentes;
-- OS concluída não pode ser cancelada diretamente; eventual estorno financeiro é fluxo separado do módulo financeiro.
+- libera reservas restantes;
+- `IN_PROGRESS` exige `admin` ou `manager`;
+- `COMPLETED`/`CLOSED` não pode ser cancelada diretamente.
 
 ## Financeiro
 
-Na conclusão, criar entrada:
+Reutilizar `finance`.
+
+Na conclusão:
 
 - `kind='RECEIVABLE'`;
-- descrição contendo número/ID da OS;
-- valor igual ao total aprovado;
-- vencimento em `due_at` se informado, senão data de conclusão;
 - `source_type='service-order'`;
-- `source_id=<os-id>`.
+- `source_id=<os-id>`;
+- valor = serviços aprovados + peças consumidas;
+- vencimento = `due_at` ou data da conclusão.
 
-Não liquidar automaticamente. O recebimento segue o fluxo financeiro existente.
+Não liquidar automaticamente.
 
-## Documentos e anexos
+## Documentos e PDF
 
-Anexos devem usar o serviço `documents` existente, vinculados por metadados de entidade (`service-order`, ID da OS) sem criar armazenamento paralelo.
+Reutilizar `documents` para anexos com `entity_type='service-order'` e `entity_id=<os-id>`.
 
-O documento de OS é não fiscal e deve incluir:
+Reutilizar `desktop/document-bridge.cjs` para impressão/PDF. Não criar outro motor de PDF.
 
-- empresa;
-- cliente;
-- ativo/equipamento se houver;
-- problema relatado;
-- diagnóstico;
-- técnico;
-- serviços;
-- peças;
-- quantidades e preços;
-- totais;
-- status;
-- datas relevantes;
-- observações.
+O documento não fiscal da OS inclui empresa, cliente, ativo, problema, diagnóstico, técnico, serviços, peças consumidas, totais, status, datas e observações.
 
-Não incluir DANFE, NF-e, NFC-e ou NFS-e.
+NFS-e permanece fora do escopo.
 
 ## API
 
-Prefixo: `/api/v1/service-orders`.
+Adicionar endpoints operacionais sob `/api/v1/service-orders`, mas manter a API legada `/api/v1/ops/service-orders` delegando ao mesmo serviço.
 
-Rotas mínimas:
+Rotas principais:
 
-- `GET /services`;
-- `POST /services`;
-- `PATCH /services/:id`;
-- `GET /assets`;
-- `POST /assets`;
-- `PATCH /assets/:id`;
-- `GET /` com filtros/paginação;
+- `GET /` com paginação e filtros;
 - `POST /`;
 - `GET /:id`;
-- `PATCH /:id` somente nos campos permitidos pelo estado;
+- `PATCH /:id` enquanto editável;
+- `POST /:id/lines`;
+- `PATCH /:id/lines/:lineId`;
+- `DELETE /:id/lines/:lineId` enquanto editável;
 - `POST /:id/approve`;
 - `POST /:id/retry-parts`;
 - `POST /:id/start`;
 - `POST /:id/parts/:lineId/consume`;
+- `POST /:id/add-extra-part`;
 - `POST /:id/complete`;
-- `POST /:id/cancel`;
-- `GET /:id/document`.
+- `POST /:id/cancel`.
 
-As respostas de listagem seguem o padrão de paginação já usado no ERP.
-
-## Permissões
-
-- `admin` / `manager`: catálogo de serviços, ativos, aprovação, conclusão, cancelamento e administração integral;
-- `operator`: criar/editar OS `OPEN`, iniciar OS aprovada, registrar consumo e atualizar diagnóstico/observações;
-- `director`: leitura e relatórios, sem alteração operacional por padrão;
-- `system`: permitido apenas em integrações internas explícitas.
-
-Toda escrita deve validar `company_id` pelo contexto autenticado; IDs de outra empresa devem responder como não encontrados/indisponíveis, nunca vazar dados.
+Ativos e manutenção continuam usando `/api/v1/ops/*` já existente, apenas ampliados onde necessário.
 
 ## UI
 
-Nova navegação: `Serviços`.
+Criar uma experiência dedicada `Serviços`, mas sem duplicar a área `Ativos/OS` de Inteligência.
 
-A página deve conter:
+- `ServicesPage.tsx` será a interface operacional completa;
+- o tab `Ativos/OS` de `IntelligencePage` vira resumo/atalho para Serviços, ou é removido se redundante;
+- manutenção preventiva existente aparece em uma aba da área Serviços reutilizando os dados atuais;
+- nenhuma segunda tela independente para os mesmos registros.
 
-1. painel/lista de OS com busca, status, cliente, técnico e período;
-2. criação/edição de OS;
-3. aba de orçamento com linhas de serviço e peças;
-4. indicador claro de peças reservadas/faltantes;
-5. ação de aprovar/reprocessar reserva;
-6. execução com consumo de peças;
-7. anexos;
-8. conclusão e impressão/PDF;
-9. cadastros auxiliares de serviços e ativos.
+A tela inclui lista de OS, orçamento, disponibilidade/reservas, execução, consumo, anexos, manutenção relacionada, conclusão e PDF.
 
-A UI deve traduzir os estados para português e evitar expor JSON técnico ao usuário final.
+## BI, alertas e workflows
 
-## Erros, transações e idempotência
+Não criar serviços paralelos.
 
-- aprovação e reservas devem ser transacionais por linha e produzir diagnóstico explícito de faltas;
-- consumo de reserva + movimento de estoque deve ser atômico;
-- conclusão + criação de recebível + mudança de status deve ser atômico;
-- ações destrutivas ou financeiras exigem chave de idempotência quando expostas por API;
-- falha parcial não pode deixar OS `COMPLETED` sem recebível ou reserva consumida sem movimento de estoque.
+- indicadores agregados de OS podem ser acrescentados ao `businessIntelligence` existente;
+- atrasos/faltas usam `operational_alerts`;
+- notificações usam `notifications`;
+- aprovações internas opcionais usam `generic_approvals`;
+- workflows configuráveis continuam disponíveis, mas o estado oficial da OS permanece `service_orders.status` para não duplicar estado persistido.
 
-## Migração e compatibilidade
+## Migrações
 
-A migration `120-service-orders.js` deve ser aditiva.
+Não usar números 120 ou 130, pois já pertencem ao Fiscal Core e Utilities P0-P2.
 
-Não alterar semanticamente:
+Planejamento:
 
-- vendas administrativas;
-- PDV;
-- NF-e/NFC-e;
-- compras;
-- conciliação financeira;
-- reservas existentes de vendas.
+- `140-shared-operations-extension.js`: extensão de `inventory_reservations` e `assets`;
+- `141-service-orders-operational.js`: extensão de `service_orders` e criação de `service_order_lines`.
 
-Se `inventory_reservations` receber `consumed_quantity`, o valor padrão zero deve manter dados antigos válidos.
+Migrations são estritamente aditivas e preservam dados existentes.
+
+## Permissões
+
+- `admin` / `manager`: gestão integral, aprovação, conclusão, cancelamento;
+- `operator`: criar/editar OPEN, iniciar, consumir peças, atualizar execução;
+- `director`: leitura/BI por padrão;
+- `system`: apenas integração interna explícita.
+
+Todas as consultas/escritas respeitam `company_id`.
 
 ## Testes obrigatórios
 
-### Domínio
+Cobrir:
 
-Cobrir no mínimo:
-
-- catálogo de serviços;
-- ativo do cliente;
-- criação e edição de OS;
-- aprovação com estoque suficiente;
-- aprovação com falta e `WAITING_PARTS`;
-- retry de reservas;
-- início bloqueado quando há falta;
-- consumo parcial e total;
-- bloqueio de consumo acima da reserva;
-- conclusão com recebível único;
-- conclusão idempotente;
-- liberação de reserva não consumida;
-- cancelamento e liberação de reservas;
-- isolamento multiempresa;
-- RBAC.
-
-### API
-
-Cobrir contratos das rotas e erros de estado/permissão.
-
-### E2E Electron
-
-Fluxo mínimo:
-
-1. cadastrar serviço;
-2. criar OS para cliente;
-3. adicionar serviço e peça;
-4. aprovar;
-5. iniciar;
-6. consumir peça;
-7. concluir;
-8. confirmar recebível criado;
-9. gerar/abrir documento da OS.
-
-Adicionar segundo cenário de `WAITING_PARTS`.
+- compatibilidade de OS legadas da Utilities P0-P2;
+- produto `SERVICE` sem estoque;
+- ativo existente vinculado a cliente;
+- criação/edição de OS;
+- tabela de preço aplicada sem duplicar pricing;
+- aprovação com e sem estoque;
+- WAITING_PARTS e retry;
+- concorrência de reservas com venda/produção;
+- consumo parcial/total;
+- peça extra;
+- conclusão cobrando somente peças consumidas;
+- recebível único/idempotente;
+- cancelamento/liberação de reserva;
+- anexos/PDF via infraestrutura existente;
+- manutenção existente associada à OS;
+- multiempresa e RBAC;
+- API nova e API legada delegando ao mesmo domínio;
+- E2E Electron do ciclo completo e cenário de falta.
 
 ## Critérios de aceite
 
-O módulo será considerado concluído quando:
+Concluído quando:
 
-- todo o ciclo da OS funcionar na UI e API;
-- reserva e consumo de peças respeitarem disponibilidade real incluindo outras reservas;
-- falta de peça resultar em `WAITING_PARTS`, não em estoque negativo;
-- a conclusão gerar exatamente um recebível;
-- anexos e documento imprimível funcionarem;
-- multiempresa e RBAC forem respeitados;
+- não existir tabela duplicada de ativos, OS, manutenção, workflow, aprovação, alerta, pricing, documento ou BI;
+- OS existente for evoluída, não substituída;
+- API antiga continuar funcional e obedecer às novas invariantes;
+- produto SERVICE reutilizar catálogo/preços;
+- estoque/reservas forem consistentes;
+- conclusão gerar um único recebível correto;
+- manutenção preventiva existente continuar funcionando;
+- UI não duplicar a mesma funcionalidade em duas áreas;
 - migrations preservarem bases existentes;
-- testes de domínio, API, E2E e gates atuais do repositório passarem;
-- nenhum fluxo fiscal atual for alterado ou duplicado.
+- todos os testes e gates atuais passarem;
+- Fiscal Core permanecer inalterado.
