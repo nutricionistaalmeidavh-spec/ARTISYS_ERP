@@ -65,7 +65,8 @@ Responsabilidades:
 
 - criar camada em recebimento de compra;
 - criar camada em produção concluída;
-- opcionalmente criar camada em ajuste positivo autorizado;
+- criar camada em ajuste positivo somente quando houver custo unitário explícito e auditável informado na operação;
+- rejeitar ajuste positivo rastreável sem custo quando não existir origem segura para valorar a camada;
 - consumir camadas em venda administrativa, PDV, OS e produção;
 - respeitar política FIFO/FEFO quando aplicável;
 - preservar lote/série quando houver rastreamento específico;
@@ -78,6 +79,7 @@ Interface conceitual:
 - `createLayer(input, actor)`
 - `allocateOutflow(input, actor)`
 - `reverseAllocation(input, actor)`
+- `transferLayerBalance(input, actor)`
 - `traceProduct(productId, filters)`
 - `traceSource(sourceType, sourceId)`
 - `getRealizedCost(sourceType, sourceId)`
@@ -165,7 +167,6 @@ Campos mínimos:
 - `id`
 - `company_id`
 - `product_id`
-- `location_id`
 - `lot_id` nullable
 - `serial_id` nullable
 - `source_type`
@@ -176,12 +177,30 @@ Campos mínimos:
 - `purchase_receipt_id` nullable
 - `manufacturing_order_id` nullable
 - `original_quantity`
-- `remaining_quantity`
 - `unit_cost_cents`
 - `received_at`
 - `created_at`
 
-### 5.2. `inventory_cost_allocations`
+A camada representa identidade econômica/origem. O saldo disponível por local não será armazenado na própria camada.
+
+### 5.2. `inventory_cost_layer_balances`
+
+Responsável pelo saldo da camada por localização.
+
+Campos mínimos:
+
+- `id`
+- `company_id`
+- `layer_id`
+- `location_id`
+- `available_quantity`
+- `updated_at`
+
+Invariante: a soma dos saldos por localização de uma camada, descontadas alocações/reversões válidas, deve ser compatível com a quantidade ainda disponível daquela origem.
+
+Transferências movem quantidade entre registros de `inventory_cost_layer_balances` sem criar custo novo e sem perder a identidade da camada.
+
+### 5.3. `inventory_cost_allocations`
 
 Campos mínimos:
 
@@ -189,6 +208,7 @@ Campos mínimos:
 - `company_id`
 - `layer_id`
 - `product_id`
+- `location_id`
 - `quantity`
 - `unit_cost_cents`
 - `total_cost_cents`
@@ -206,7 +226,7 @@ Campos mínimos:
 - `SERVICE_ORDER`
 - `MANUFACTURING_ORDER`
 
-### 5.3. `traceability_links`
+### 5.4. `traceability_links`
 
 Tabela genérica somente para relações que não estejam representadas de forma confiável por FK já existente.
 
@@ -224,9 +244,9 @@ Campos:
 
 Não duplicar vínculo quando uma FK existente já for suficiente para reconstrução.
 
-### 5.4. `commercial_facts`
+### 5.5. `commercial_facts`
 
-Materialização opcional para estabilidade de BI e performance. Se implementada, deve ser derivável e idempotente.
+A materialização é **obrigatória** para estabilidade, performance de BI e prevenção explícita de dupla contagem.
 
 Campos mínimos:
 
@@ -244,6 +264,9 @@ Campos mínimos:
 - `occurred_at`
 - `financial_entry_id` nullable
 - `reversal_of_id` nullable
+- `idempotency_key`
+
+Cada fato deve ser derivável da transação de origem e recriável em procedimento de rebuild administrativo, sem alterar o histórico das transações fonte.
 
 ## 6. Fluxos obrigatórios
 
@@ -255,11 +278,12 @@ Campos mínimos:
 4. Pedido de compra é gerado.
 5. Recebimento gera entrada física.
 6. Cada item recebido cria camada de custo com vínculo ao fornecedor/pedido/recebimento.
-7. Confirmação de pedido de venda reserva estoque sem consumir camada.
-8. Faturamento consome camada(s) conforme política.
-9. Fatura gera conta a receber, como já ocorre.
-10. Fato comercial recebe receita e CMV realizado.
-11. BI calcula margem e lead times.
+7. O saldo da camada é registrado no local de recebimento.
+8. Confirmação de pedido de venda reserva estoque sem consumir camada.
+9. Faturamento consome camada(s) conforme política.
+10. Fatura gera conta a receber, como já ocorre.
+11. Fato comercial recebe receita e CMV realizado.
+12. BI calcula margem e lead times.
 
 ### 6.2. Compra até PDV
 
@@ -278,7 +302,7 @@ Campos mínimos:
 3. `consumePart` consome camada na quantidade efetivamente usada.
 4. Conclusão da OS gera conta a receber como atualmente.
 5. O custo das peças é a soma das alocações efetivamente consumidas.
-6. Receita de serviço e receita de peças podem ser apresentadas separadamente.
+6. Receita de serviço e receita de peças devem ser apresentadas separadamente.
 7. Margem da OS deve distinguir margem conhecida de peças e custo de mão de obra somente quando houver custo/hora configurado. Sem custo/hora, não inventar custo trabalhista.
 
 ### 6.4. Compra até produção e produto acabado
@@ -294,21 +318,25 @@ Campos mínimos:
 
 ### 6.5. Transferências
 
-Transferência entre locais não reconhece receita nem custo novo. Deve mover a disponibilidade da camada preservando origem e custo. A solução pode representar isso por subcamada/localização ou por saldo de camada por localização, desde que a identidade da origem seja preservada.
+Transferência entre locais não reconhece receita nem custo novo.
+
+A implementação deve mover quantidade entre registros de `inventory_cost_layer_balances`, preservando o mesmo `layer_id`, custo e origem. Não será permitida criação de nova camada econômica apenas por transferência de localização.
 
 ### 6.6. Devoluções
 
 #### Devolução de venda
 
 - entrada física deve restaurar estoque quando aplicável;
-- deve criar reversão/compensação de alocação original;
+- deve criar reversão/compensação da alocação original;
+- quantidade retornada deve voltar para a mesma camada de origem quando tecnicamente possível;
 - deve reduzir receita e CMV proporcionalmente no BI;
 - não deve apagar a venda original.
 
 #### Devolução a fornecedor
 
-- deve reduzir/remover disponibilidade das camadas compatíveis;
+- deve reduzir disponibilidade das camadas relacionadas ao recebimento devolvido;
 - deve manter relação com recebimento e crédito do fornecedor;
+- se parte da camada já foi consumida, somente a quantidade ainda disponível pode ser devolvida sem fluxo adicional de compensação;
 - custo histórico de saídas já consumidas não pode ser reescrito.
 
 ## 7. Política de custo
@@ -351,13 +379,14 @@ Métricas:
 
 ### 8.2. DRE
 
-A DRE não deve duplicar receitas que já tenham sido reconhecidas via fatos comerciais.
+A DRE não deve duplicar receitas que já tenham sido reconhecidas via `commercial_facts`.
 
 Regra:
 
-- fatos comerciais reconhecem receita operacional e CMV dos canais suportados;
+- `commercial_facts` reconhece receita operacional e CMV dos canais suportados;
 - `financial_entries` continua alimentando despesas, outras receitas/custos e itens financeiros;
-- recebíveis originados de venda/PDV/OS servem ao fluxo de caixa e liquidação, mas não devem duplicar receita operacional na DRE.
+- recebíveis originados de venda administrativa, PDV e OS servem ao fluxo de caixa e liquidação, mas são excluídos da parcela genérica de receita da DRE;
+- a exclusão deve ser baseada em `source_type` conhecido e testada contra dupla contagem.
 
 ### 8.3. Fluxo de caixa
 
@@ -404,9 +433,10 @@ Permitir separar e consolidar venda administrativa, PDV e OS.
 ## 11. Tratamento de erros e consistência
 
 - criação da saída física e alocação de custo devem ocorrer atomicamente quando fizerem parte da mesma operação;
-- se não houver camada suficiente para produto controlado, a operação deve falhar em vez de gerar CMV inventado;
+- criação da entrada física, camada e saldo de camada também deve ser atômica;
+- se não houver camada suficiente para produto rastreável, a operação deve falhar em vez de gerar CMV inventado;
 - inconsistências entre saldo físico e saldo de camadas devem aparecer em health check/diagnóstico;
-- idempotência deve impedir alocação duplicada em retries;
+- idempotência deve impedir camada, alocação ou fato comercial duplicado em retries;
 - estornos devem ser compensatórios e auditáveis;
 - relações de empresa devem respeitar `company_id` em todas as tabelas novas;
 - queries de BI não podem misturar empresas sem solicitação explícita de visão consolidada autorizada.
@@ -418,9 +448,10 @@ Dados novos devem passar a usar o ledger imediatamente após a migração.
 Para dados históricos existentes:
 
 - não inventar origem que não esteja comprovada;
-- quando `inventory_movements.source_type/source_id` permitir reconstrução segura, backfill pode criar camadas históricas;
-- quando origem exata não for demonstrável, marcar como `LEGACY_UNATTRIBUTED` com custo conhecido disponível no movimento, sem atribuir fornecedor fictício;
-- relatórios devem distinguir custo rastreado de custo legado estimado quando houver diferença material.
+- quando `inventory_movements.source_type/source_id` permitir reconstrução segura, backfill deve criar camadas históricas;
+- quando origem exata não for demonstrável, usar origem `LEGACY_UNATTRIBUTED` com custo conhecido disponível no movimento, sem atribuir fornecedor fictício;
+- relatórios devem distinguir custo rastreado de custo legado estimado quando houver diferença material;
+- o backfill deve ser idempotente e possuir relatório de reconciliação antes/depois.
 
 ## 13. Testes obrigatórios
 
@@ -433,7 +464,7 @@ produto -> requisição -> cotação -> adjudicação -> pedido de compra -> rec
 Validar:
 
 - quantidade física final;
-- quantidade remanescente por camada;
+- quantidade remanescente por camada/local;
 - contas a pagar/receber;
 - settlements quando aplicável;
 - receita por canal;
@@ -456,7 +487,7 @@ Obrigatórios:
 - FEFO;
 - lote;
 - número de série;
-- transferência entre locais;
+- transferência entre locais preservando `layer_id`;
 - devolução parcial de venda;
 - devolução a fornecedor;
 - OS cancelada antes de consumo;
@@ -464,11 +495,13 @@ Obrigatórios:
 - produção com matéria-prima de múltiplas compras;
 - refugo na produção;
 - produto acabado vendido após produção;
+- ajuste positivo com custo explícito;
+- rejeição de ajuste positivo rastreável sem custo seguro;
 - retry/idempotência;
 - reversão sem reescrever histórico;
 - isolamento multiempresa;
 - relatório consolidado incluindo venda administrativa + PDV + OS;
-- DRE sem duplicidade entre fato comercial e financial_entries.
+- DRE sem duplicidade entre `commercial_facts` e `financial_entries`.
 
 ## 14. Critérios de aceite
 
@@ -483,7 +516,9 @@ A entrega só pode ser considerada concluída quando:
 7. indicadores por produto calcularem margem e lead times com valores reproduzíveis por drill-down;
 8. devoluções e estornos preservarem histórico e corrigirem indicadores;
 9. testes automatizados cobrirem o fluxo ponta a ponta e os negativos principais;
-10. health check detectar divergência entre quantidade rastreável e estoque quando houver quebra de invariantes.
+10. health check detectar divergência entre quantidade rastreável e estoque quando houver quebra de invariantes;
+11. transferências preservarem a mesma origem econômica/camada;
+12. reconstrução de `commercial_facts` produzir os mesmos totais das transações fonte válidas.
 
 ## 15. Fora de escopo desta implementação
 
@@ -498,14 +533,14 @@ A entrega só pode ser considerada concluída quando:
 ## 16. Sequência arquitetural sugerida
 
 1. migrações e invariantes do ledger;
-2. serviço de camadas/alocações;
+2. serviço de camadas/alocações/saldos por local;
 3. integração com recebimento de compras;
 4. integração com venda administrativa;
 5. integração com PDV;
 6. integração com OS;
 7. integração com produção/MRP;
 8. devoluções/reversões/transferências;
-9. fatos comerciais e relatório consolidado;
+9. `commercial_facts` e relatório consolidado;
 10. DRE/BI e indicadores de produto/fornecedor;
 11. APIs/UI de rastreabilidade e performance;
 12. migração/backfill histórico seguro;
