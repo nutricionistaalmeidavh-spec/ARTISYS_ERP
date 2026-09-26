@@ -3,11 +3,13 @@ Set-StrictMode -Version Latest
 
 $AcbrCommit = '2784a56ad10f60b9fa412c8d172e495e9d93a0e7'
 $FortesCommit = '888e387faca5a691b246a6b493776b8435be59f3'
+$PowerPdfCommit = '213b144a123811e96dd8baebb592d9e72be958ca'
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $Target = Join-Path $RepoRoot 'fiscal-runtime\acbr'
 $WorkRoot = Join-Path $env:RUNNER_TEMP ('acbr-' + [Guid]::NewGuid().ToString('N').Substring(0,8))
 $AcbrRoot = Join-Path $WorkRoot 'ACBr'
 $FortesRoot = Join-Path $WorkRoot 'fortes'
+$PowerPdfRoot = Join-Path $WorkRoot 'powerpdf'
 
 function Invoke-Checked([string]$File, [string[]]$Arguments) {
   Write-Host "> $File $($Arguments -join ' ')"
@@ -42,6 +44,13 @@ try {
   Invoke-Checked 'git' @('-c','core.longpaths=true','clone','--no-tags','--depth','1','https://github.com/fortesinformatica/fortesreport-ce.git',$FortesRoot)
   Invoke-Checked 'git' @('-C',$FortesRoot,'fetch','--depth','1','origin',$FortesCommit)
   Invoke-Checked 'git' @('-C',$FortesRoot,'checkout','--detach','FETCH_HEAD')
+
+  Invoke-Checked 'git' @('-c','core.longpaths=true','clone','--no-tags','--depth','1','https://github.com/drungrin/PowerPDF.git',$PowerPdfRoot)
+  Invoke-Checked 'git' @('-C',$PowerPdfRoot,'fetch','--depth','1','origin',$PowerPdfCommit)
+  Invoke-Checked 'git' @('-C',$PowerPdfRoot,'checkout','--detach','FETCH_HEAD')
+  $powerPdfPackage = Join-Path $PowerPdfRoot 'pack_powerpdf.lpk'
+  if (-not (Test-Path $powerPdfPackage)) { throw 'Pacote pack_powerpdf.lpk nao encontrado.' }
+  Invoke-Checked $LazBuild @('--add-package-link',$powerPdfPackage)
 
   $fortesPackage = Get-ChildItem $FortesRoot -Filter 'frce.lpk' -Recurse | Select-Object -First 1
   if (-not $fortesPackage) { throw 'Pacote Lazarus do FortesReport nao encontrado.' }
@@ -85,6 +94,8 @@ ACBr source: https://github.com/frones/ACBr
 ACBr commit: $AcbrCommit
 FortesReport source: https://github.com/fortesinformatica/fortesreport-ce
 FortesReport commit: $FortesCommit
+PowerPDF source: https://github.com/drungrin/PowerPDF
+PowerPDF commit: $PowerPdfCommit
 Build: Lazarus/FPC, Release-Win64-x86_64
 The ACBr executable is compiled from source during the ArtiSys ERP release pipeline.
 No runtime download or paid fiscal provider is required by the ERP core.
