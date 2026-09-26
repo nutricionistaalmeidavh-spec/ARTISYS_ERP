@@ -22,6 +22,7 @@ const {createInventoryOperationsService}=require('../domains/inventory/inventory
 const {createInventoryDepthService}=require('../domains/inventory/inventory-depth-service');
 const {createInventoryReservationService}=require('../domains/inventory/inventory-reservation-service');
 const {createPagedQueryService}=require('../domains/shared/paged-query-service');
+const {extendSalesAdminCompanyOwnership,extendProcurementCompanyOwnership}=require('../domains/shared/company-source-ownership');
 const {createFinanceDimensionsService}=require('../domains/finance/finance-dimensions');
 const {createFinanceService}=require('../domains/finance/finance-service');
 const {createSupplierCreditService}=require('../domains/finance/supplier-credit-service');
@@ -75,7 +76,8 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const finance=createFinanceService({...common,dimensions:financeDimensions});
  const pagedQueries=createPagedQueryService({db,contacts,catalog,finance});
  const supplierCredits=createSupplierCreditService({...common,finance,events});
- const procurement=createProcurementService({...common,contacts,catalog,inventory,finance,settings,events});
+ const procurementBase=createProcurementService({...common,contacts,catalog,inventory,finance,settings,events});
+ const procurement=extendProcurementCompanyOwnership({db,procurement:procurementBase});
  const procurementRequisitions=createRequisitionService({...common,catalog,inventory,events});
  const procurementQuotations=createQuotationService({...common,contacts,catalog,requisitions:procurementRequisitions,events});
  const procurementPricing=createPricingHistoryService({db});
@@ -83,7 +85,8 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const procurementApprovals=createApprovalService({...common,settings,events});
  const procurementAwards=createAwardService({...common,scoring:procurementScoring,requisitions:procurementRequisitions,procurement,approvals:procurementApprovals,events});
  const procurementReturns=createReturnService({...common,inventory,finance,supplierCredits,events});
- const salesAdmin=createSalesAdminService({...common,contacts,catalog,inventory,inventoryLogistics,finance,events});
+ const salesAdminBase=createSalesAdminService({...common,contacts,catalog,inventory,inventoryLogistics,finance,events});
+ const salesAdmin=extendSalesAdminCompanyOwnership({db,salesAdmin:salesAdminBase});
  const retailBase=createRetailOperationsService({...common,catalog,contacts,inventory,finance,salesAdmin});
  const retail=extendRetailWithServiceProducts({...common,catalog,retail:retailBase});
  const serviceOrders=createServiceOrderService({...common,contacts,catalog,inventory,inventoryReservations,finance});
