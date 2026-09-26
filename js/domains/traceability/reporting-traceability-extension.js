@@ -1,0 +1,9 @@
+'use strict';
+const {businessDate}=require('../reports/reporting-service');
+function extendReportingWithTraceability({db,reports}={}){
+ if(!db||!reports)throw new TypeError('report traceability dependencies are required.');
+ function range(from,to){const a=businessDate(from,'Data inicial'),b=businessDate(to,'Data final');if(a>b)throw new Error('Data inicial nao pode ser posterior a data final.');return[a,b];}
+ function buildSalesSummary({from,to,basis='accrual',companyId='default'}={}){const[a,b]=range(from,to),cid=String(companyId||'default');let revenue=0,cost=0,count=0;if(basis==='accrual'){const rows=db.prepare(`SELECT revenue_cents,realized_cost_cents FROM commercial_facts WHERE company_id=? AND substr(occurred_at,1,10)>=? AND substr(occurred_at,1,10)<=?`).all(cid,a,b);for(const row of rows){revenue+=Number(row.revenue_cents||0);cost+=Number(row.realized_cost_cents||0);count++;}}else if(basis==='cash'){const rows=db.prepare(`SELECT cf.revenue_cents,cf.realized_cost_cents,fe.amount_cents entry_amount,fs.amount_cents settled_amount FROM commercial_facts cf JOIN financial_entries fe ON fe.id=cf.financial_entry_id JOIN financial_settlements fs ON fs.entry_id=fe.id WHERE cf.company_id=? AND fs.reversed_at IS NULL AND fe.status<>'CANCELLED' AND substr(fs.created_at,1,10)>=? AND substr(fs.created_at,1,10)<=?`).all(cid,a,b);for(const row of rows){const entry=Math.max(Math.abs(Number(row.entry_amount||0)),1),ratio=Math.min(1,Math.abs(Number(row.settled_amount||0))/entry);revenue+=Math.round(Number(row.revenue_cents||0)*ratio);cost+=Math.round(Number(row.realized_cost_cents||0)*ratio);count++;}}else throw new Error('Base de vendas deve ser cash ou accrual.');return{basis,from:a,to:b,invoiceOrSettlementCount:count,netSalesCents:revenue,estimatedCostCents:cost,estimatedMarginCents:revenue-cost};}
+ return{...reports,buildSalesSummary};
+}
+module.exports={extendReportingWithTraceability};
