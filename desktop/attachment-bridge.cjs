@@ -1,0 +1,7 @@
+'use strict';
+const fs=require('node:fs');const path=require('node:path');const {dialog}=require('electron');
+const MAX_ATTACHMENT_BYTES=10*1024*1024;const ALLOWED=new Set(['.pdf','.png','.jpg','.jpeg','.webp','.txt','.csv','.xml','.xlsx','.docx']);
+function trustedSender(event){const senderUrl=String(event?.senderFrame?.url||'');try{return new URL(senderUrl).protocol==='file:';}catch{return false;}}
+function inspect(filePath){const resolved=path.resolve(String(filePath||'')),stat=fs.statSync(resolved),ext=path.extname(resolved).toLowerCase();if(!stat.isFile())throw new Error('Arquivo invalido.');if(stat.size>MAX_ATTACHMENT_BYTES)throw new Error('Arquivo excede 10 MB.');if(!ALLOWED.has(ext))throw new Error('Tipo de arquivo nao permitido.');return{sourcePath:resolved,name:path.basename(resolved),size:stat.size,extension:ext};}
+function registerAttachmentBridge({ipcMain}={}){if(!ipcMain)throw new TypeError('ipcMain is required.');ipcMain.handle('erp:select-attachment',async event=>{if(!trustedSender(event))throw new Error('Untrusted sender.');if(process.env.ERP_E2E==='1'&&process.env.ERP_E2E_DOCUMENT_FILE)return inspect(process.env.ERP_E2E_DOCUMENT_FILE);const result=await dialog.showOpenDialog({title:'Selecionar documento',properties:['openFile'],filters:[{name:'Documentos suportados',extensions:[...ALLOWED].map(x=>x.slice(1))}]});if(result.canceled||!result.filePaths?.[0])return null;return inspect(result.filePaths[0]);});}
+module.exports={MAX_ATTACHMENT_BYTES,ALLOWED,trustedSender,inspect,registerAttachmentBridge};

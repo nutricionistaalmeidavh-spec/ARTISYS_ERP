@@ -2,7 +2,7 @@ name: ERP Verify
 
 on:
   push:
-    branches: [main, feat/react-vite-foundation]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -16,6 +16,7 @@ jobs:
           node-version: '22'
       - run: npm install --ignore-scripts
       - run: npm run verify
+      - run: npm run coverage
       - run: npm rebuild electron
       - name: Run Electron E2E with hard timeout
         run: timeout --signal=TERM --kill-after=30s 12m xvfb-run -a npm run e2e
