@@ -23,3 +23,25 @@ test('commercial reversal is compensating and preserves original fact',()=>{
  const reversal=facts.recordReversalFact({originalFactId:original.id,quantity:1,revenueCents:500,realizedCostCents:250,idempotencyKey:'return:s1:i1'},actor);
  assert.equal(reversal.reversalOfId,original.id);assert.equal(reversal.revenueCents,-500);assert.equal(reversal.realizedCostCents,-250);assert.equal(db.prepare('SELECT COUNT(*) n FROM commercial_facts').get().n,2);
 });
+
+test('POS net revenue allocation preserves exact sale total with discount and rounding',()=>{
+ const {allocateNetRevenue}=require('../js/domains/traceability/retail-traceability-extension');
+ const rows=allocateNetRevenue([{id:'a',grossCents:333},{id:'b',grossCents:667}],900);
+ assert.deepEqual(rows.map(x=>x.revenueCents),[300,600]);
+ assert.equal(rows.reduce((s,x)=>s+x.revenueCents,0),900);
+ const rounded=allocateNetRevenue([{id:'a',grossCents:1},{id:'b',grossCents:1},{id:'c',grossCents:1}],2);
+ assert.equal(rounded.reduce((s,x)=>s+x.revenueCents,0),2);
+ assert.deepEqual(rounded.map(x=>x.revenueCents),[1,1,0]);
+});
+
+test('retail traceability wrapper records realized cost and facts atomically after base sale',()=>{
+ const {extendRetailWithTraceability}=require('../js/domains/traceability/retail-traceability-extension');
+ const calls={alloc:[],facts:[]};
+ const retail={getCash:()=>({id:'cash1',locationId:'MAIN'}),createSale:()=>({id:'sale1',sessionId:'cash1',customerId:'cust1',totalCents:900,receivableEntryId:'ar1',createdAt:'2026-09-26T10:00:00.000Z',items:[{id:'i1',productId:'p1',quantity:2,unitPriceCents:300,totalCents:600},{id:'i2',productId:'p2',quantity:1,unitPriceCents:400,totalCents:400}]})};
+ const wrapped=extendRetailWithTraceability({db:{},retail,catalog:{getProduct:id=>({id,trackStock:true,costCents:0})},costLedger:{allocateOutflow(input){calls.alloc.push(input);return{totalCostCents:input.productId==='p1'?200:300};}},commercialFacts:{recordSaleFact(input){calls.facts.push(input);return input;}},withTransaction:(_db,fn)=>fn()});
+ const sale=wrapped.createSale({idempotencyKey:'sale-key'},{companyId:'c1'});
+ assert.equal(sale.id,'sale1');assert.equal(calls.alloc.length,2);assert.equal(calls.facts.length,2);
+ assert.equal(calls.facts.reduce((s,x)=>s+x.revenueCents,0),900);
+ assert.equal(calls.facts.reduce((s,x)=>s+x.realizedCostCents,0),500);
+ assert.deepEqual(calls.alloc.map(x=>x.destinationItemId),['i1','i2']);
+});
