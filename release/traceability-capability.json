@@ -1,0 +1,18 @@
+{
+  "capability": "end-to-end-product-traceability",
+  "status": "implemented",
+  "scope": [
+    "procurement receipts and supplier provenance",
+    "inventory cost layers and allocations",
+    "sales admin",
+    "retail/POS",
+    "service orders",
+    "manufacturing",
+    "returns",
+    "transfers",
+    "commercial facts",
+    "DRE/BI integration",
+    "API/UI",
+    "legacy backfill and health checks"
+  ]
+}
