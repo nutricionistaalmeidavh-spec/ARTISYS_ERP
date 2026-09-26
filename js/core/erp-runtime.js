@@ -91,7 +91,7 @@ function createErpRuntime({dbPath=':memory:',now=()=>new Date().toISOString(),id
  const fiscal=createFiscalService({...common,catalog,retail,salesAdmin});
  const reports=createReportingService({db,now});
  const operations=createOperationsSuite(common);
- const businessIntelligence=createBusinessIntelligenceService({db,reports,inventoryDepth});
+ const businessIntelligence=createBusinessIntelligenceService({db,reports,inventoryDepth,mrp,now});
  const financeDocuments=createFinanceDocumentService({db,finance,now});
  const financeManagement=createFinanceManagementService({db,finance,reports,now});
  const bankStatements=createStatementImport({...common,finance});
