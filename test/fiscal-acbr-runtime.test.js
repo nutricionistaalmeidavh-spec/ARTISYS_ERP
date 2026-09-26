@@ -3,47 +3,11 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-
 const {createAcbrLocalProvider,normalizeLoopbackBaseUrl}=require('../js/domains/tax/acbr-local-provider');
-
-function fakeFetch(log){
-  return async(url,options={})=>{
-    log.push({url:String(url),method:options.method||'GET',body:options.body?JSON.parse(options.body):null,authorization:options.headers?.authorization||null});
-    return {ok:true,status:200,async text(){return JSON.stringify({healthy:true,result:{ok:true,status:200,data:{accessKey:'351234'}}});}};
-  };
-}
-
-test('ACBr local aceita somente endpoint HTTP em loopback',()=>{
-  assert.equal(normalizeLoopbackBaseUrl('http://127.0.0.1:3210'),'http://127.0.0.1:3210');
-  assert.equal(normalizeLoopbackBaseUrl('http://localhost:3210'),'http://localhost:3210');
-  assert.throws(()=>normalizeLoopbackBaseUrl('https://127.0.0.1:3210'),/HTTP local/);
-  assert.throws(()=>normalizeLoopbackBaseUrl('http://192.168.0.10:3210'),/loopback local/);
-});
-
-test('provider ACBr encaminha emissao, consulta, contingencia e cancelamento ao sidecar autenticado',async()=>{
-  const calls=[];
-  const provider=createAcbrLocalProvider({
-    connection:{provider:'acbr-local',environment:'homologation',documentType:'nfce'},
-    baseUrl:'http://127.0.0.1:3210',authToken:'token-seguro-123456',fetchImpl:fakeFetch(calls)
-  });
-  await provider.issue({documentType:'nfce',reference:'sale-1',payload:{total:10}});
-  await provider.query('sale-1','nfce',{accessKey:'351'});
-  await provider.createContingency('sale-1',{total:10},'nfce');
-  await provider.sendContingency('sale-1',{xml:'<NFe/>',payload:{total:10}},'nfce');
-  await provider.cancel('sale-1','Cancelamento solicitado pelo cliente','nfce',{accessKey:'351',issuerCnpj:'12345678000195'});
-  assert.deepEqual(calls.map(x=>x.method),['POST','GET','POST','POST','POST']);
-  assert.match(calls[0].url,/\/v1\/documents\/nfce\/sale-1$/);
-  assert.match(calls[1].url,/accessKey=351/);
-  assert.match(calls[2].url,/\/contingency\/create$/);
-  assert.match(calls[3].url,/\/contingency\/send$/);
-  assert.match(calls[4].url,/\/cancel$/);
-  assert.ok(calls.every(x=>x.authorization==='Bearer token-seguro-123456'));
-});
-
-test('build desktop inclui dominio fiscal, sidecar e slot externo do ACBr',()=>{
-  const pkg=JSON.parse(fs.readFileSync(path.join(__dirname,'..','package.json'),'utf8'));
-  assert.ok(pkg.build.files.includes('js/domains/tax/**/*'));
-  assert.ok(pkg.build.files.includes('server/fiscal-sidecar/**/*'));
-  const resources=pkg.build.extraResources||[];
-  assert.ok(resources.some(x=>x.from==='fiscal-runtime/acbr'&&x.to==='fiscal/acbr'));
-});
+const {createErpRuntime}=require('../js/core/erp-runtime');
+const TOKEN='token-seguro-123456789012345678901234567890';
+function fakeFetch(log){return async(url,options={})=>{log.push({url:String(url),method:options.method||'GET',body:options.body?JSON.parse(options.body):null,authorization:options.headers?.authorization||null});return{ok:true,status:200,async text(){return JSON.stringify({healthy:true,result:{ok:true,status:200,data:{chave:'35123456789012345678901234567890123456789012',protocolo:'135260000000001',cStat:100,xMotivo:'Autorizado o uso da NF-e'}}});}};};}
+test('ACBr local aceita somente endpoint HTTP em loopback',()=>{assert.equal(normalizeLoopbackBaseUrl('http://127.0.0.1:3210'),'http://127.0.0.1:3210');assert.equal(normalizeLoopbackBaseUrl('http://localhost:3210'),'http://localhost:3210');assert.throws(()=>normalizeLoopbackBaseUrl('https://127.0.0.1:3210'),/HTTP local/);assert.throws(()=>normalizeLoopbackBaseUrl('http://192.168.0.10:3210'),/loopback local/);});
+test('provider ACBr encaminha emissao, consulta, contingencia e cancelamento ao sidecar autenticado',async()=>{const calls=[];const provider=createAcbrLocalProvider({connection:{provider:'acbr-local',environment:'homologation',documentType:'nfce'},baseUrl:'http://127.0.0.1:3210',authToken:TOKEN,fetchImpl:fakeFetch(calls)});await provider.issue({documentType:'nfce',reference:'sale-1',payload:{total:10}});await provider.query('sale-1','nfce',{accessKey:'351'});await provider.createContingency('sale-1',{total:10},'nfce');await provider.sendContingency('sale-1',{xml:'<NFe/>',payload:{total:10}},'nfce');await provider.cancel('sale-1','Cancelamento solicitado pelo cliente','nfce',{accessKey:'351',issuerCnpj:'12345678000195'});assert.deepEqual(calls.map(x=>x.method),['POST','GET','POST','POST','POST']);assert.match(calls[0].url,/\/v1\/documents\/nfce\/sale-1$/);assert.match(calls[1].url,/accessKey=351/);assert.match(calls[2].url,/\/contingency\/create$/);assert.match(calls[3].url,/\/contingency\/send$/);assert.match(calls[4].url,/\/cancel$/);assert.ok(calls.every(x=>x.authorization===`Bearer ${TOKEN}`));});
+test('Fiscal Core emite NFC-e pelo ACBr provider e persiste autorizacao SEFAZ',async()=>{const calls=[],admin={userId:'admin',role:'admin',companyId:'default'};const r=createErpRuntime({idFactory:(()=>{let n=0;return p=>`${p}-${++n}`;})(),fiscalRuntimeConfig:{sidecarBaseUrl:'http://127.0.0.1:3210',sidecarAuthToken:TOKEN,fetchImpl:fakeFetch(calls)}});try{r.inventory.createLocation({id:'MAIN',name:'Principal'},admin);const product=r.catalog.createProduct({id:'P1',name:'Produto teste',sku:'SKU1',salePriceCents:1000,trackStock:false},admin);r.fiscal.saveSettings({provider:'acbr-local',environment:'homologation',cnpj:'12345678000195',stateRegistration:'123456789',legalName:'ArtiSys Teste LTDA',tradeName:'ArtiSys',crt:'1',seriesNfce:'1',seriesNfe:'1',operationNature:'VENDA',address:{street:'Rua Teste',number:'100',district:'Centro',cityCode:'3543402',city:'Ribeirao Preto',state:'SP',zip:'14010000'}},admin);const profile=r.fiscal.saveProfile({id:'PF1',name:'Simples',ncm:'61091000',cfop:'5102',origin:'0',csosn:'102',pisCst:'49',cofinsCst:'49',unit:'UN'},admin);r.fiscal.assignProduct(product.id,{profileId:profile.id,gtin:null},admin);const cash=r.retail.openCash({locationId:'MAIN',openingCents:0},admin);const sale=r.retail.createSale({sessionId:cash.id,idempotencyKey:'sale-1',items:[{productId:product.id,quantity:1}],payments:[{method:'PIX',amountCents:1000}]},admin);const doc=r.fiscal.createDocument({sourceType:'POS_SALE',sourceId:sale.id,idempotencyKey:'fiscal-1'},admin);const authorized=await r.fiscalRuntime.issueDocument(doc.id,admin);assert.equal(authorized.status,'AUTHORIZED');assert.equal(authorized.accessKey,'35123456789012345678901234567890123456789012');assert.equal(authorized.authorizationProtocol,'135260000000001');assert.equal(calls.length,1);assert.equal(calls[0].body.environment,'homologation');assert.equal(calls[0].body.payload.documentType,'nfce');assert.equal(calls[0].body.payload.identification.model,'65');assert.equal(calls[0].body.payload.items[0].tax.ncm,'61091000');}finally{r.close();}});
+test('build desktop inclui dominio fiscal, sidecar e slot externo do ACBr',()=>{const pkg=JSON.parse(fs.readFileSync(path.join(__dirname,'..','package.json'),'utf8'));assert.ok(pkg.build.files.includes('js/domains/tax/**/*'));assert.ok(pkg.build.files.includes('server/fiscal-sidecar/**/*'));const resources=pkg.build.extraResources||[];assert.ok(resources.some(x=>x.from==='server/fiscal-sidecar'&&x.to==='fiscal/sidecar'));assert.ok(resources.some(x=>x.from==='fiscal-runtime/acbr'&&x.to==='fiscal/acbr'));});
