@@ -35,7 +35,7 @@ test('fiscal core isolates settings profiles products documents and sequences by
   assert.equal(db.number,1);
   assert.notEqual(da.id,db.id);
   assert.equal(r.fiscal.getDocument(da.id,a).companyId,'company-a');
-  assert.equal(r.fiscal.getDocument(da.id,b),null);
+  assert.equal(r.fiscal.getDocument(da.id,b)==null,true);
   assert.equal(r.fiscal.documentsForSource('SERVICE_ORDER_SERVICE','OS-X',a).length,1);
   assert.equal(r.fiscal.documentsForSource('SERVICE_ORDER_SERVICE','OS-X',b).length,1);
  }finally{r.close();}
