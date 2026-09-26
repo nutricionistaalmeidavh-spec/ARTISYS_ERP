@@ -37,6 +37,10 @@ jobs:
           $files = Get-ChildItem dist/ArtiSys-ERP-*-x64-Setup.exe
           if ($files.Count -lt 1) { throw 'Installer artifact missing' }
           if ($files[0].Length -lt 1MB) { throw 'Installer artifact unexpectedly small' }
+          $packagedAcbr = Get-Item dist/win-unpacked/resources/fiscal/acbr/ACBrMonitorPLUS.exe -ErrorAction Stop
+          if ($packagedAcbr.Length -lt 100KB) { throw 'Packaged ACBrMonitorPLUS.exe unexpectedly small' }
+          if (!(Test-Path dist/win-unpacked/resources/fiscal/acbr/Schemas/NFe)) { throw 'Packaged NFe schemas missing' }
+          if (!(Test-Path dist/win-unpacked/resources/fiscal/acbr/ACBR-LICENSE.TXT)) { throw 'Packaged ACBr license missing' }
       - uses: actions/upload-artifact@v4
         with:
           name: ArtiSys-ERP-Windows
