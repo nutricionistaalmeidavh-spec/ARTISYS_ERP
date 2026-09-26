@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS cash_movements(id TEXT PRIMARY KEY,session_id TEXT NO
 CREATE TABLE IF NOT EXISTS pos_sales(id TEXT PRIMARY KEY,company_id TEXT NOT NULL DEFAULT 'default',session_id TEXT NOT NULL,customer_id TEXT,status TEXT NOT NULL,total_cents INTEGER NOT NULL,discount_cents INTEGER NOT NULL DEFAULT 0,surcharge_cents INTEGER NOT NULL DEFAULT 0,receivable_entry_id TEXT,idempotency_key TEXT NOT NULL UNIQUE,created_by TEXT,created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS pos_sale_items(id TEXT PRIMARY KEY,sale_id TEXT NOT NULL,product_id TEXT NOT NULL,quantity REAL NOT NULL,unit_price_cents INTEGER NOT NULL,total_cents INTEGER NOT NULL,returned_quantity REAL NOT NULL DEFAULT 0,created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS pos_payments(id TEXT PRIMARY KEY,sale_id TEXT NOT NULL,method TEXT NOT NULL,amount_cents INTEGER NOT NULL,created_at TEXT NOT NULL);
+ALTER TABLE sales_admin_invoice_items ADD COLUMN returned_quantity REAL NOT NULL DEFAULT 0;
+CREATE TABLE IF NOT EXISTS sales_admin_returns(id TEXT PRIMARY KEY,invoice_id TEXT NOT NULL,reason TEXT NOT NULL,total_cents INTEGER NOT NULL,refund_entry_id TEXT,idempotency_key TEXT NOT NULL UNIQUE,created_by TEXT,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sales_admin_return_items(id TEXT PRIMARY KEY,return_id TEXT NOT NULL,invoice_item_id TEXT NOT NULL,product_id TEXT NOT NULL,quantity REAL NOT NULL,amount_cents INTEGER NOT NULL,created_at TEXT NOT NULL);
+
 CREATE TABLE IF NOT EXISTS sales_returns(id TEXT PRIMARY KEY,sale_id TEXT NOT NULL,reason TEXT NOT NULL,total_cents INTEGER NOT NULL,refund_entry_id TEXT,idempotency_key TEXT NOT NULL UNIQUE,created_by TEXT,created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sales_return_items(id TEXT PRIMARY KEY,return_id TEXT NOT NULL,sale_item_id TEXT NOT NULL,product_id TEXT NOT NULL,quantity REAL NOT NULL,amount_cents INTEGER NOT NULL,created_at TEXT NOT NULL);
 
