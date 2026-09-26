@@ -1,4 +1,4 @@
-'use strict';const {randomUUID}=require('node:crypto');const {assertRole}=require('../auth/rbac');
+'use strict';const {randomUUID}=require('node:crypto');const {assertRole}=require('./auth/rbac');
 function createOperationsSuite({db,now=()=>new Date().toISOString(),idFactory=p=>p+'-'+randomUUID()}={}){const cid=a=>String(a?.companyId||'default'),ts=()=>String(now()),manager=a=>assertRole(a,['admin','manager','director']);
  const parse=(v,d)=>{try{return JSON.parse(v||JSON.stringify(d))}catch{return d}},one=(sql,...x)=>db.prepare(sql).get(...x),all=(sql,...x)=>db.prepare(sql).all(...x);
  function createBranch(i={},a){manager(a);const id=String(i.id||idFactory('branch'));db.prepare('INSERT INTO company_branches(id,company_id,code,name,active,created_at,updated_at) VALUES(?,?,?,?,1,?,?)').run(id,cid(a),String(i.code||'').trim(),String(i.name||'').trim(),ts(),ts());return one('SELECT * FROM company_branches WHERE id=?',id)}
