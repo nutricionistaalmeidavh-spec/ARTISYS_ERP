@@ -35,7 +35,7 @@ try {
   Invoke-Checked 'git' @('-c','core.longpaths=true','clone','--filter=blob:none','--no-checkout','--no-tags','--depth','1','https://github.com/frones/ACBr.git',$AcbrRoot)
   Invoke-Checked 'git' @('-C',$AcbrRoot,'config','core.longpaths','true')
   Invoke-Checked 'git' @('-C',$AcbrRoot,'sparse-checkout','init','--cone')
-  Invoke-Checked 'git' @('-C',$AcbrRoot,'sparse-checkout','set','Projetos/ACBrMonitorPLUS','Pacotes/Lazarus','Fontes','DLLs','Exemplos/ACBrDFe/Schemas/NFe')
+  Invoke-Checked 'git' @('-C',$AcbrRoot,'sparse-checkout','set','Projetos/ACBrMonitorPLUS','Projetos/ACBrLib/Fontes','Pacotes/Lazarus','Fontes','DLLs','Exemplos/ACBrDFe/Schemas/NFe')
   Invoke-Checked 'git' @('-C',$AcbrRoot,'fetch','--depth','1','origin',$AcbrCommit)
   Invoke-Checked 'git' @('-C',$AcbrRoot,'checkout','--detach','FETCH_HEAD')
   $actualAcbr = (& git -C $AcbrRoot rev-parse HEAD).Trim()
