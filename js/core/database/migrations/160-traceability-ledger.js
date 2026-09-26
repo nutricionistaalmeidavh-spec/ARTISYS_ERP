@@ -23,7 +23,6 @@ CREATE TABLE IF NOT EXISTS inventory_cost_layers(
 CREATE INDEX IF NOT EXISTS idx_cost_layers_company_product ON inventory_cost_layers(company_id,product_id,received_at,id);
 CREATE INDEX IF NOT EXISTS idx_cost_layers_source ON inventory_cost_layers(company_id,source_type,source_id,source_item_id);
 CREATE INDEX IF NOT EXISTS idx_cost_layers_purchase_receipt ON inventory_cost_layers(company_id,purchase_receipt_id,product_id);
-
 CREATE TABLE IF NOT EXISTS inventory_cost_layer_balances(
  id TEXT PRIMARY KEY,
  company_id TEXT NOT NULL,
@@ -34,7 +33,6 @@ CREATE TABLE IF NOT EXISTS inventory_cost_layer_balances(
  UNIQUE(company_id,layer_id,location_id)
 );
 CREATE INDEX IF NOT EXISTS idx_cost_balances_company_location ON inventory_cost_layer_balances(company_id,location_id,layer_id);
-
 CREATE TABLE IF NOT EXISTS inventory_cost_allocations(
  id TEXT PRIMARY KEY,
  company_id TEXT NOT NULL,
@@ -47,15 +45,16 @@ CREATE TABLE IF NOT EXISTS inventory_cost_allocations(
  destination_type TEXT NOT NULL,
  destination_id TEXT NOT NULL,
  destination_item_id TEXT,
+ operation_key TEXT NOT NULL,
  allocated_at TEXT NOT NULL,
  reversed_allocation_id TEXT REFERENCES inventory_cost_allocations(id) ON DELETE RESTRICT,
  idempotency_key TEXT NOT NULL,
  UNIQUE(company_id,idempotency_key)
 );
+CREATE INDEX IF NOT EXISTS idx_cost_allocations_operation ON inventory_cost_allocations(company_id,operation_key);
 CREATE INDEX IF NOT EXISTS idx_cost_allocations_destination ON inventory_cost_allocations(company_id,destination_type,destination_id,destination_item_id);
 CREATE INDEX IF NOT EXISTS idx_cost_allocations_layer ON inventory_cost_allocations(company_id,layer_id,allocated_at,id);
 CREATE INDEX IF NOT EXISTS idx_cost_allocations_product ON inventory_cost_allocations(company_id,product_id,allocated_at,id);
-
 CREATE TABLE IF NOT EXISTS traceability_links(
  id TEXT PRIMARY KEY,
  company_id TEXT NOT NULL,
@@ -70,7 +69,6 @@ CREATE TABLE IF NOT EXISTS traceability_links(
 );
 CREATE INDEX IF NOT EXISTS idx_trace_links_from ON traceability_links(company_id,from_type,from_id);
 CREATE INDEX IF NOT EXISTS idx_trace_links_to ON traceability_links(company_id,to_type,to_id);
-
 CREATE TABLE IF NOT EXISTS commercial_facts(
  id TEXT PRIMARY KEY,
  company_id TEXT NOT NULL,
