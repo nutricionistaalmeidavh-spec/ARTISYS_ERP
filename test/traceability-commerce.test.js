@@ -45,3 +45,24 @@ test('retail traceability wrapper records realized cost and facts atomically aft
  assert.equal(calls.facts.reduce((s,x)=>s+x.realizedCostCents,0),500);
  assert.deepEqual(calls.alloc.map(x=>x.destinationItemId),['i1','i2']);
 });
+
+test('service order traceability does not allocate cost on reservation and makes part consumption retry-safe',()=>{
+ const {extendServiceOrdersWithTraceability}=require('../js/domains/traceability/service-order-traceability-extension');
+ const calls={consume:0,alloc:0};let existing=null;
+ const base={get:()=>({id:'os1',companyId:'c1',customerId:'cust1',locationId:'MAIN',status:'IN_PROGRESS',receivableEntryId:null,lines:[{id:'l1',lineType:'PART',productId:'p1',quantity:2,consumedQuantity:calls.consume,unitPriceCents:500}]}),consumePart(){calls.consume++;return{consumedQuantity:calls.consume};},complete(){return this.get();},approve(){return this.get();}};
+ const ledger={allocateOutflow(input){calls.alloc++;existing={operationKey:input.idempotencyKey,totalCostCents:200,allocations:[{id:'a1'}]};return existing;},getRealizedCost:()=>200};
+ const wrapped=extendServiceOrdersWithTraceability({db:{},serviceOrders:base,costLedger:ledger,commercialFacts:null,operationLookup:()=>existing,withTransaction:(_db,fn)=>fn()});
+ wrapped.approve('os1',{}, {companyId:'c1'});assert.equal(calls.alloc,0);
+ wrapped.consumePart('os1','l1',{quantity:1,idempotencyKey:'consume-1'},{companyId:'c1'});assert.equal(calls.consume,1);assert.equal(calls.alloc,1);
+ wrapped.consumePart('os1','l1',{quantity:1,idempotencyKey:'consume-1'},{companyId:'c1'});assert.equal(calls.consume,1);assert.equal(calls.alloc,1);
+});
+
+test('service order completion records separate service and part facts using realized part cost',()=>{
+ const {extendServiceOrdersWithTraceability}=require('../js/domains/traceability/service-order-traceability-extension');
+ const facts=[];
+ const order={id:'os1',companyId:'c1',customerId:'cust1',locationId:'MAIN',status:'COMPLETED',receivableEntryId:'ar1',completedAt:'2026-09-26T10:00:00.000Z',lines:[{id:'s1',lineType:'SERVICE',productId:'svc',quantity:1,consumedQuantity:0,unitPriceCents:1000},{id:'p1',lineType:'PART',productId:'part',quantity:2,consumedQuantity:2,unitPriceCents:500}]};
+ const base={complete:()=>order,get:()=>order};
+ const wrapped=extendServiceOrdersWithTraceability({db:{},serviceOrders:base,costLedger:{getRealizedCost:({destinationItemId})=>destinationItemId==='p1'?600:0},commercialFacts:{recordSaleFact(x){facts.push(x);return x;}},withTransaction:(_db,fn)=>fn()});
+ wrapped.complete('os1',{idempotencyKey:'complete-1'},{companyId:'c1'});
+ assert.equal(facts.length,2);assert.equal(facts.find(x=>x.sourceItemId==='s1').realizedCostCents,0);assert.equal(facts.find(x=>x.sourceItemId==='p1').realizedCostCents,600);assert.equal(facts.reduce((s,x)=>s+x.revenueCents,0),2000);
+});
