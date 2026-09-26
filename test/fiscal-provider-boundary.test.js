@@ -1,0 +1,5 @@
+'use strict';
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');
+const read=p=>fs.readFileSync(p,'utf8');
+test('fiscal interoperability never owns provider sidecar or runtime transport',()=>{for(const file of['js/domains/tax/fiscal-interoperability-service.js','js/domains/tax/fiscal-procurement-interoperability.js','js/domains/tax/fiscal-transfer-interoperability.js']){const s=read(file);assert.doesNotMatch(s,/acbr-local-provider|focus-fiscal-provider|fiscal-sidecar|fiscalRuntime|sidecarBaseUrl|ARTISYS_FOCUS_TOKEN/,file);}});
+test('commercial manifest exposes fiscal interoperability without mandatory paid service',()=>{const m=JSON.parse(read('release/customer-capabilities.json'));assert.equal(m.localFirst,true);assert.equal(m.requiresPaidService,false);const fiscal=m.capabilities.find(x=>x.id==='fiscal-interoperability');assert.ok(fiscal);assert.equal(fiscal.status,'available');assert.match(fiscal.name,/NFC-e/);assert.match(fiscal.name,/NF-e/);assert.match(fiscal.name,/NFS-e/);});
