@@ -32,7 +32,7 @@ async function launchErpElectron() {
       dbPath,
       dir,
       async close() {
-        try { await app.close(); } finally { rmSync(dir, { recursive: true, force: true }); }
+        try { await Promise.race([app.close(),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Electron close timeout')),5000))]); } catch { try { const p=app.process(); if(p&&!p.killed)p.kill('SIGKILL'); } catch {} } finally { rmSync(dir, { recursive: true, force: true }); }
       }
     };
   } catch (error) {
