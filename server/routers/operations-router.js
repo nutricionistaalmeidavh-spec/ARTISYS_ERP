@@ -7,7 +7,7 @@ function createOperationsRouter({runtime,sessions,bodyLimitBytes=1024*1024}={}){
   if(!url.pathname.startsWith('/api/v1/ops/'))return false;
   try{
    const a=requireActor(req,sessions),d=()=>body(req,bodyLimitBytes);let m;const p=url.pathname;
-   if(p==='/api/v1/ops/bi'&&req.method==='GET'){json(res,200,runtime.businessIntelligence.overview({from:url.searchParams.get('from')||'2000-01-01',to:url.searchParams.get('to')||'2999-12-31'}));return true;}
+   if(p==='/api/v1/ops/bi'&&req.method==='GET'){json(res,200,runtime.businessIntelligence.overview({from:url.searchParams.get('from')||'2000-01-01',to:url.searchParams.get('to')||'2999-12-31',companyId:a.companyId||'default'}));return true;}
    if(p==='/api/v1/ops/branches'){if(req.method==='GET'){json(res,200,runtime.operations.listBranches(a));return true;}if(req.method==='POST'){json(res,201,runtime.operations.createBranch(await d(),a));return true;}}
    if(p==='/api/v1/ops/dashboards'){if(req.method==='GET'){json(res,200,runtime.operations.listDashboards(a));return true;}if(req.method==='POST'){json(res,201,runtime.operations.saveDashboard(await d(),a));return true;}}
    if(p==='/api/v1/ops/alerts'){if(req.method==='GET'){json(res,200,runtime.operations.listAlerts(a));return true;}if(req.method==='POST'){json(res,201,runtime.operations.createAlert(await d(),a));return true;}}
