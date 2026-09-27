@@ -1,70 +1,13 @@
 {
   "roadmapId": "erpnext-depth-6-phases",
   "schemaVersion": 1,
-  "nextStage": {
-    "status": "locked",
-    "name": null
-  },
+  "nextStage": {"status": "locked", "name": null},
   "phases": [
-    {
-      "id": "accounting-core",
-      "name": "Accounting Core",
-      "status": "pending",
-      "evidence": {
-        "implementation": [],
-        "tests": [],
-        "verification": []
-      }
-    },
-    {
-      "id": "projects-2",
-      "name": "Projects 2.0",
-      "status": "pending",
-      "evidence": {
-        "implementation": [],
-        "tests": [],
-        "verification": []
-      }
-    },
-    {
-      "id": "crm",
-      "name": "CRM",
-      "status": "pending",
-      "evidence": {
-        "implementation": [],
-        "tests": [],
-        "verification": []
-      }
-    },
-    {
-      "id": "manufacturing-shop-floor",
-      "name": "Manufacturing Shop Floor",
-      "status": "pending",
-      "evidence": {
-        "implementation": [],
-        "tests": [],
-        "verification": []
-      }
-    },
-    {
-      "id": "stock-logistics",
-      "name": "Stock Logistics",
-      "status": "pending",
-      "evidence": {
-        "implementation": [],
-        "tests": [],
-        "verification": []
-      }
-    },
-    {
-      "id": "asset-accounting",
-      "name": "Asset Accounting",
-      "status": "pending",
-      "evidence": {
-        "implementation": [],
-        "tests": [],
-        "verification": []
-      }
-    }
+    {"id":"accounting-core","name":"Accounting Core","status":"in_progress","evidence":{"implementation":[],"tests":["test/accounting-core.test.js"],"verification":[]}},
+    {"id":"projects-2","name":"Projects 2.0","status":"in_progress","evidence":{"implementation":[],"tests":["test/projects-2.test.js"],"verification":[]}},
+    {"id":"crm","name":"CRM","status":"in_progress","evidence":{"implementation":[],"tests":["test/crm.test.js"],"verification":[]}},
+    {"id":"manufacturing-shop-floor","name":"Manufacturing Shop Floor","status":"in_progress","evidence":{"implementation":[],"tests":["test/manufacturing-shop-floor.test.js"],"verification":[]}},
+    {"id":"stock-logistics","name":"Stock Logistics","status":"in_progress","evidence":{"implementation":[],"tests":["test/stock-logistics.test.js"],"verification":[]}},
+    {"id":"asset-accounting","name":"Asset Accounting","status":"in_progress","evidence":{"implementation":[],"tests":["test/asset-accounting.test.js"],"verification":[]}}
   ]
 }
