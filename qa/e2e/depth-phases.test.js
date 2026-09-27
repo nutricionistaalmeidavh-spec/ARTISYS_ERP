@@ -14,9 +14,10 @@ test('advanced ERP depth entry preserves navigation and exposes the six workspac
   const ids=['accounting','projects','crm','shop-floor','stock-logistics','assets'];
   const legacy=['Accounting Core','Projects 2.0','CRM','Manufacturing Shop Floor','Stock Logistics','Asset Accounting'];
   for(let i=0;i<ids.length;i++){
-   await erp.page.getByTestId(`advanced-nav-${ids[i]}`).waitFor({state:'visible'});
-   await erp.page.getByText(legacy[i],{exact:true}).waitFor({state:'visible'});
-   await erp.page.getByTestId(`advanced-nav-${ids[i]}`).click();
+   const nav=erp.page.getByTestId(`advanced-nav-${ids[i]}`);
+   await nav.waitFor({state:'visible'});
+   await nav.getByText(legacy[i],{exact:true}).first().waitFor({state:'visible'});
+   await nav.click();
    await erp.page.getByTestId(`workspace-${ids[i]}`).waitFor({state:'visible'});
   }
   assert.equal(await erp.page.getByTestId('view-depth').isVisible(),true);
