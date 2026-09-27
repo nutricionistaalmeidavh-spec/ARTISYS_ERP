@@ -174,7 +174,7 @@
 - E2E: `qa/e2e/depth-phases.test.js`
 
 **Interfaces:**
-- Loads accounts, periods and trial-balance summary on entry.
+- Loads GET `/api/v1/accounting/accounts`, GET `/api/v1/accounting/periods` and GET `/api/v1/accounting/trial-balance` on entry.
 - Tabs/sections: `Plano de contas`, `Lançamentos`, `Demonstrativos`.
 - Primary actions: create account, create/close period, post journal, reverse journal, inspect journal, apply date filter.
 
@@ -212,7 +212,8 @@
 
 **Interfaces:**
 - Sections: Pipeline, Leads, Oportunidades, Atividades.
-- Uses new CRM GET routes plus existing write routes.
+- Reads: GET `/api/v1/crm/pipeline`, `/api/v1/crm/leads`, `/api/v1/crm/opportunities`, `/api/v1/crm/stages`, `/api/v1/crm/activities`.
+- Mutations reuse the existing CRM POST routes.
 
 - [ ] **Step 1: Add failing E2E** for create lead → row visible → create opportunity/observe pipeline, plus empty state before seed where practical.
 - [ ] **Step 2: Run targeted E2E**; expected FAIL on missing CRM workspace controls.
@@ -229,11 +230,12 @@
 
 **Interfaces:**
 - Sections: Operações, Postos, Roteiros, Job Cards, Qualidade.
-- Uses new read routes and current create/generate/start/complete/inspection routes.
+- Reads new shop-floor list routes plus GET `/api/v1/manufacturing/orders` for production-order selection.
+- Mutations reuse existing create/generate/start/complete/inspection routes.
 
 - [ ] **Step 1: Add failing E2E** that creates an operation through UI and sees the resulting row; add list visibility for workstations/routings/job cards.
 - [ ] **Step 2: Run targeted E2E**; expected FAIL.
-- [ ] **Step 3: Implement** operational tables and dialogs; routing form selects operation/workstation records from lists rather than raw IDs where records are available.
+- [ ] **Step 3: Implement** operational tables and dialogs; routing form selects operation/workstation records from lists and job-card generation selects the manufacturing order from GET `/api/v1/manufacturing/orders`.
 - [ ] **Step 4: Implement** job-card status actions and quality-inspection dialog with clear validation feedback.
 - [ ] **Step 5: Re-run targeted E2E**; expected PASS.
 - [ ] **Step 6: Commit** `feat: add shop floor workspace`.
@@ -246,12 +248,12 @@
 
 **Interfaces:**
 - Sections: Armazenagem, Picking, Packing/Expedição, Landed Cost.
-- Uses new read routes plus current putaway/pick/package/shipment/landed-cost routes.
-- Product/location options should be loaded from existing catalog/inventory APIs already used elsewhere in the ERP where available.
+- Reads new logistics list routes, GET `/api/v1/products` for product selection, and GET `/api/v1/inventory/locations?includeInactive=false` for warehouse/location selection.
+- Mutations reuse current putaway/pick/package/shipment/landed-cost routes.
 
-- [ ] **Step 1: Add failing E2E** proving putaway suggestion uses selected product from a UI list/control rather than a raw product-ID text box.
+- [ ] **Step 1: Add failing E2E** proving putaway suggestion selects `UI-PROD` from the product list/control and `UI-BIN` from the location list/control rather than raw-ID text fields.
 - [ ] **Step 2: Run targeted E2E**; expected FAIL.
-- [ ] **Step 3: Implement** putaway rules/suggestion, picks, packages/shipment and landed-cost forms/tables.
+- [ ] **Step 3: Implement** putaway rules/suggestion, picks, packages/shipment and landed-cost forms/tables using those exact product/location sources.
 - [ ] **Step 4: Ensure** status transitions refresh rows and show success/error feedback.
 - [ ] **Step 5: Re-run targeted E2E**; expected PASS.
 - [ ] **Step 6: Commit** `feat: add stock logistics workspace`.
@@ -264,12 +266,13 @@
 
 **Interfaces:**
 - Asset master list: GET `/api/v1/ops/assets`.
-- Book/depreciation data: asset-accounting read routes.
-- Actions: capitalize, depreciate, move custody, dispose; account selectors use accounting account list.
+- Book/depreciation data: GET `/api/v1/asset-accounting/assets`, GET `/api/v1/asset-accounting/assets/:id`, GET `/api/v1/asset-accounting/assets/:id/depreciation`.
+- Accounting selectors: GET `/api/v1/accounting/accounts`.
+- Actions: capitalize, depreciate, move custody, dispose.
 
 - [ ] **Step 1: Add failing E2E** that selects `UI-ASSET` from the asset table and reads its book value without filling a raw asset ID.
 - [ ] **Step 2: Run targeted E2E**; expected FAIL.
-- [ ] **Step 3: Implement** asset list + book detail + depreciation/custody history and lifecycle action dialogs.
+- [ ] **Step 3: Implement** asset list + book detail + depreciation/custody history and lifecycle action dialogs; account fields are selectors populated from GET `/api/v1/accounting/accounts`.
 - [ ] **Step 4: Add** disposed/active status badges and gain/loss feedback after disposal.
 - [ ] **Step 5: Re-run targeted E2E**; expected PASS.
 - [ ] **Step 6: Commit** `feat: add asset accounting workspace`.
