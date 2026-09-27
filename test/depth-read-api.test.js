@@ -45,7 +45,7 @@ test('CRM read endpoints list stages, leads and opportunities with filters and c
 
 test('shop-floor read endpoints expose scoped operations, workstations, routings and filtered job cards',async()=>{
  const ctx=await fixture();try{const token=await ctx.login(),a=actor();
-  ctx.runtime.catalog.createProduct({id:'FG',sku:'FG',name:'Produto acabado',costCents:0,salePriceCents:1000,trackStock:true});
+  ctx.runtime.catalog.createProduct({id:'FG',sku:'FG',name:'Produto acabado',costCents:0,salePriceCents:1000,trackStock:true},a);
   ctx.runtime.shopFloor.createOperation({id:'OP-1',name:'Corte',defaultMinutes:20},a);
   ctx.runtime.shopFloor.createWorkstation({id:'WS-1',name:'Serra',capacity:2,costPerHourCents:6000},a);
   ctx.runtime.shopFloor.createRouting({id:'R-1',name:'Roteiro 1',productId:'FG',steps:[{operationId:'OP-1',workstationId:'WS-1',sequence:1}]},a);
@@ -62,7 +62,7 @@ test('shop-floor read endpoints expose scoped operations, workstations, routings
 test('stock-logistics read endpoints expose scoped putaway rules, picks and packages',async()=>{
  const ctx=await fixture();try{const token=await ctx.login(),a=actor();
   ctx.runtime.inventory.createLocation({id:'MAIN',name:'Principal'},a);
-  ctx.runtime.catalog.createProduct({id:'P-1',sku:'P-1',name:'Produto',costCents:1000,salePriceCents:1500,trackStock:true});
+  ctx.runtime.catalog.createProduct({id:'P-1',sku:'P-1',name:'Produto',costCents:1000,salePriceCents:1500,trackStock:true},a);
   ctx.runtime.inventory.move({productId:'P-1',locationId:'MAIN',delta:5,unitCostCents:1000},a);
   ctx.runtime.stockLogistics.createPutawayRule({id:'PUT-1',productId:'P-1',targetLocationId:'MAIN',priority:1},a);
   const pick=ctx.runtime.stockLogistics.createPick({id:'PICK-1',sourceType:'MANUAL',sourceId:'SRC-1',locationId:'MAIN',items:[{productId:'P-1',quantity:1}]},a);
