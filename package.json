@@ -17,13 +17,15 @@
     "coverage:vertical": "node scripts/check-vertical-coverage.js",
     "boundary:check": "node scripts/check-erp-boundaries.js",
     "electron:compat": "node scripts/check-electron-renderer-compat.js",
-    "verify": "npm run frontend:check && npm run frontend:build && npm run boundary:check && npm run electron:compat && npm run lint && npm test && npm run coverage:vertical",
+    "roadmap:validate": "node scripts/check-erpnext-depth-roadmap.js",
+    "roadmap:require-complete": "node scripts/check-erpnext-depth-roadmap.js --require-complete",
+    "verify": "npm run roadmap:validate && npm run frontend:check && npm run frontend:build && npm run boundary:check && npm run electron:compat && npm run lint && npm test && npm run coverage:vertical",
     "e2e": "node --test --test-concurrency=1 qa/e2e/*.test.js",
     "e2e:smoke": "node --test qa/e2e/smoke.test.js",
     "qa:quick": "node qa/runtime/erp-qa.mjs quick --config qa/artisys-qa.config.json",
     "qa:full": "node qa/runtime/erp-qa.mjs full --config qa/artisys-qa.config.json",
     "qa:release": "node qa/runtime/erp-qa.mjs release --config qa/artisys-qa.config.json",
-    "release:check": "npm run verify && npm run coverage && node scripts/check-licenses.js && node scripts/check-customer-capabilities.js && npm run qa:release",
+    "release:check": "npm run roadmap:require-complete && npm run verify && npm run coverage && node scripts/check-licenses.js && node scripts/check-customer-capabilities.js && npm run qa:release",
     "dist:win": "npm run frontend:build && electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
@@ -47,7 +49,7 @@
   },
   "build": {
     "appId":"com.artisys.erp","productName":"ArtiSys ERP","asar":true,"directories":{"output":"dist"},
-    "files":["desktop/**/*","frontend/dist/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/services/**/*","js/domains/manufacturing/**/*","js/domains/finance/**/*","js/domains/reports/**/*","js/domains/tax/**/*","server/**/*","server/fiscal-sidecar/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
+    "files":["desktop/**/*","frontend/dist/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/services/**/*","js/domains/manufacturing/**/*","js/domains/finance/**/*","js/domains/accounting/**/*","js/domains/projects/**/*","js/domains/crm/**/*","js/domains/assets/**/*","js/domains/reports/**/*","js/domains/tax/**/*","server/**/*","server/fiscal-sidecar/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
     "extraResources":[
       {"from":"server/fiscal-sidecar","to":"fiscal/sidecar","filter":["**/*"]},
       {"from":"fiscal-runtime/acbr","to":"fiscal/acbr","filter":["**/*"]},
