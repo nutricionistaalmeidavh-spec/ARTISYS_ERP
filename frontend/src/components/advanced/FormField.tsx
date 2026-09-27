@@ -1,0 +1,2 @@
+import type{ReactNode}from'react';
+export function FormField({label,children,hint}:{label:string;children:ReactNode;hint?:string}){return <label className="advanced-form-field"><span>{label}</span>{children}{hint&&<small>{hint}</small>}</label>}
