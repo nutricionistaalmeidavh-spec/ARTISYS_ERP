@@ -49,7 +49,7 @@
   },
   "build": {
     "appId":"com.artisys.erp","productName":"ArtiSys ERP","asar":true,"directories":{"output":"dist"},
-    "files":["desktop/**/*","frontend/dist/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/services/**/*","js/domains/manufacturing/**/*","js/domains/finance/**/*","js/domains/reports/**/*","js/domains/tax/**/*","server/**/*","server/fiscal-sidecar/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
+    "files":["desktop/**/*","frontend/dist/**/*","js/core/**/*","js/domains/shared/**/*","js/domains/contacts/**/*","js/domains/catalog/**/*","js/domains/inventory/**/*","js/domains/procurement/**/*","js/domains/sales-admin/**/*","js/domains/services/**/*","js/domains/manufacturing/**/*","js/domains/finance/**/*","js/domains/accounting/**/*","js/domains/projects/**/*","js/domains/crm/**/*","js/domains/assets/**/*","js/domains/reports/**/*","js/domains/tax/**/*","server/**/*","server/fiscal-sidecar/**/*","release/**/*","vendor/artisys-eventbus/**/*","vendor/artisys-finance-domain/**/*","package.json"],
     "extraResources":[
       {"from":"server/fiscal-sidecar","to":"fiscal/sidecar","filter":["**/*"]},
       {"from":"fiscal-runtime/acbr","to":"fiscal/acbr","filter":["**/*"]},
