@@ -53,6 +53,7 @@ test('advanced management exposes six operational workspaces without raw-id prim
   await erp.page.getByTestId('crm-new-lead').click();
   await erp.page.getByTestId('crm-lead-name').fill('Lead Advanced');
   await erp.page.getByTestId('crm-lead-submit').click();
+  await erp.page.getByRole('button',{name:'Leads',exact:true}).click();
   await erp.page.getByTestId('crm-leads-table').getByText('Lead Advanced').waitFor();
 
   await erp.page.getByTestId('advanced-nav-shop-floor').click();
