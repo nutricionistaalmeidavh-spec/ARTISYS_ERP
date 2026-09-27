@@ -15,6 +15,13 @@ test('React entrypoint no longer loads legacy renderer scripts directly',()=>{
   assert.match(html,/type="module"\s+src="\/src\/main\.tsx"/);
 });
 
+test('legacy renderer is not published as a second frontend or shipped separately',()=>{
+  const vite=read('frontend/vite.config.ts');
+  const pkg=JSON.parse(read('package.json'));
+  assert.match(vite,/publicDir:false/);
+  assert.ok(pkg.build.files.includes('!desktop/renderer/**/*'),'desktop renderer must be excluded from packaged app');
+});
+
 test('React domain pages do not depend on window.ErpViews compatibility globals',()=>{
   const domain=read('frontend/src/pages/DomainPage.tsx');
   assert.equal(domain.includes('window.ErpViews'),false,'DomainPage still depends on window.ErpViews');
