@@ -1,0 +1,70 @@
+{
+  "roadmapId": "erpnext-depth-6-phases",
+  "schemaVersion": 1,
+  "nextStage": {
+    "status": "locked",
+    "name": null
+  },
+  "phases": [
+    {
+      "id": "accounting-core",
+      "name": "Accounting Core",
+      "status": "pending",
+      "evidence": {
+        "implementation": [],
+        "tests": [],
+        "verification": []
+      }
+    },
+    {
+      "id": "projects-2",
+      "name": "Projects 2.0",
+      "status": "pending",
+      "evidence": {
+        "implementation": [],
+        "tests": [],
+        "verification": []
+      }
+    },
+    {
+      "id": "crm",
+      "name": "CRM",
+      "status": "pending",
+      "evidence": {
+        "implementation": [],
+        "tests": [],
+        "verification": []
+      }
+    },
+    {
+      "id": "manufacturing-shop-floor",
+      "name": "Manufacturing Shop Floor",
+      "status": "pending",
+      "evidence": {
+        "implementation": [],
+        "tests": [],
+        "verification": []
+      }
+    },
+    {
+      "id": "stock-logistics",
+      "name": "Stock Logistics",
+      "status": "pending",
+      "evidence": {
+        "implementation": [],
+        "tests": [],
+        "verification": []
+      }
+    },
+    {
+      "id": "asset-accounting",
+      "name": "Asset Accounting",
+      "status": "pending",
+      "evidence": {
+        "implementation": [],
+        "tests": [],
+        "verification": []
+      }
+    }
+  ]
+}
