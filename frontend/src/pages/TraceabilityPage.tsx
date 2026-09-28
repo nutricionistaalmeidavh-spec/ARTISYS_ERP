@@ -7,12 +7,13 @@ type Performance={productId:string;quantity:number;revenueCents:number;costCents
 type Layer={id:string;source_type:string;source_id:string;supplier_id?:string|null;purchase_order_id?:string|null;purchase_receipt_id?:string|null;unit_cost_cents:number;original_quantity:number;availableQuantity?:number;received_at:string};
 type Trace={productId:string;layers:Layer[];allocations:unknown[];facts:unknown[]};
 type Health={ok:boolean;discrepancyCount:number;orphanAllocations:number;orphanFacts:number};
+type ProductLookup={id:string}|null;
 const money=(v=0)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v/100);
 const days=(v:number|null)=>v==null?'—':`${v.toFixed(1)} dias`;
 
 export function TraceabilityPage({api}:{api:ErpApi}){
  const[productId,setProductId]=useState(''),[from,setFrom]=useState('2000-01-01'),[to,setTo]=useState('2999-12-31'),[performance,setPerformance]=useState<Performance|null>(null),[trace,setTrace]=useState<Trace|null>(null),[health,setHealth]=useState<Health|null>(null),[message,setMessage]=useState('');
- const load=async()=>{const id=productId.trim();if(!id){setMessage('Informe o produto.');return;}try{const[p,t,h]=await Promise.all([api.request<Performance>(`/api/v1/traceability/products/${encodeURIComponent(id)}/performance?from=${from}&to=${to}`),api.request<Trace>(`/api/v1/traceability/products/${encodeURIComponent(id)}`),api.request<Health>('/api/v1/traceability/health')]);setPerformance(p);setTrace(t);setHealth(h);setMessage('');}catch(e){setMessage(e instanceof Error?e.message:String(e));}};
+ const load=async()=>{const code=productId.trim();if(!code){setMessage('Informe o produto.');return;}try{const found=await api.request<ProductLookup>(`/api/v1/retail/products/find?code=${encodeURIComponent(code)}`);if(!found?.id)throw new Error('Produto não encontrado.');const id=found.id;const[p,t,h]=await Promise.all([api.request<Performance>(`/api/v1/traceability/products/${encodeURIComponent(id)}/performance?from=${from}&to=${to}`),api.request<Trace>(`/api/v1/traceability/products/${encodeURIComponent(id)}`),api.request<Health>('/api/v1/traceability/health')]);setPerformance(p);setTrace(t);setHealth(h);setMessage('');}catch(e){setPerformance(null);setTrace(null);setHealth(null);setMessage(e instanceof Error?e.message:String(e));}};
  return <div data-testid="view-traceability">
   {message&&<div className="notice error">{message}</div>}
   <Panel title="Rastreabilidade por produto"><div className="form-grid"><label>Produto<input data-testid="trace-product" value={productId} onChange={e=>setProductId(e.target.value)} placeholder="ID/SKU do produto"/></label><label>De<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>Até<input type="date" value={to==='2999-12-31'?'':to} onChange={e=>setTo(e.target.value||'2999-12-31')}/></label></div><button data-testid="trace-search" onClick={load}>Consultar trilha</button></Panel>
