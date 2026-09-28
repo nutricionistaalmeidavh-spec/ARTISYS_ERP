@@ -10,5 +10,8 @@ contextBridge.exposeInMainWorld('erpDesktop',Object.freeze({
   selectAttachment:()=>ipcRenderer.invoke('erp:select-attachment'),
   saveExportFile:input=>ipcRenderer.invoke('erp:save-export-file',input),
   savePdf:input=>ipcRenderer.invoke('erp:save-pdf',input),
-  printHtml:input=>ipcRenderer.invoke('erp:print-html',input)
+  printHtml:input=>ipcRenderer.invoke('erp:print-html',input),
+  getFiscalCertificateStatus:()=>ipcRenderer.invoke('erp:fiscal-certificate-status'),
+  importFiscalCertificate:input=>ipcRenderer.invoke('erp:fiscal-certificate-import',input),
+  removeFiscalCertificate:()=>ipcRenderer.invoke('erp:fiscal-certificate-remove')
 }));

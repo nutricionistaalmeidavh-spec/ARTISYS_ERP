@@ -1,0 +1,55 @@
+{
+  "roadmapId": "erpnext-depth-6-phases",
+  "schemaVersion": 1,
+  "nextStage": {"status": "locked", "name": null},
+  "phases": [
+    {
+      "id":"accounting-core","name":"Accounting Core","status":"completed",
+      "evidence":{
+        "implementation":["js/core/database/migrations/180-accounting-core.js","js/domains/accounting/accounting-service.js","server/routers/accounting-router.js","frontend/src/pages/DepthPage.tsx"],
+        "tests":["test/accounting-core.test.js","test/depth-api.test.js","qa/e2e/depth-phases.test.js"],
+        "verification":["ERP Verify run 36324579201 success @ 447f269dbe495d7c42f5d9bd45a64cd821fa4cbd","171/171 unit tests passed","36/36 Electron E2E tests passed","accounting-service.js and migration 180 reached 100% line coverage"]
+      }
+    },
+    {
+      "id":"projects-2","name":"Projects 2.0","status":"completed",
+      "evidence":{
+        "implementation":["js/core/database/migrations/181-projects-2.js","js/domains/projects/project-service.js","server/routers/projects-depth-router.js","frontend/src/pages/DepthPage.tsx"],
+        "tests":["test/projects-2.test.js","test/depth-api.test.js","qa/e2e/depth-phases.test.js"],
+        "verification":["ERP Verify run 36324579201 success @ 447f269dbe495d7c42f5d9bd45a64cd821fa4cbd","171/171 unit tests passed","36/36 Electron E2E tests passed","project-service.js and migration 181 reached 100% line coverage"]
+      }
+    },
+    {
+      "id":"crm","name":"CRM","status":"completed",
+      "evidence":{
+        "implementation":["js/core/database/migrations/182-crm.js","js/domains/crm/crm-service.js","server/routers/crm-router.js","frontend/src/pages/DepthPage.tsx"],
+        "tests":["test/crm.test.js","test/depth-api.test.js","qa/e2e/depth-phases.test.js"],
+        "verification":["ERP Verify run 36324579201 success @ 447f269dbe495d7c42f5d9bd45a64cd821fa4cbd","171/171 unit tests passed","36/36 Electron E2E tests passed","crm-service.js and migration 182 reached 100% line coverage"]
+      }
+    },
+    {
+      "id":"manufacturing-shop-floor","name":"Manufacturing Shop Floor","status":"completed",
+      "evidence":{
+        "implementation":["js/core/database/migrations/183-manufacturing-shop-floor.js","js/domains/manufacturing/shop-floor-service.js","server/routers/shop-floor-router.js","frontend/src/pages/DepthPage.tsx"],
+        "tests":["test/manufacturing-shop-floor.test.js","test/depth-api.test.js","qa/e2e/depth-phases.test.js"],
+        "verification":["ERP Verify run 36324579201 success @ 447f269dbe495d7c42f5d9bd45a64cd821fa4cbd","171/171 unit tests passed","36/36 Electron E2E tests passed","shop-floor-service.js and migration 183 reached 100% line coverage"]
+      }
+    },
+    {
+      "id":"stock-logistics","name":"Stock Logistics","status":"completed",
+      "evidence":{
+        "implementation":["js/core/database/migrations/184-stock-logistics.js","js/domains/inventory/stock-logistics-service.js","server/routers/stock-logistics-router.js","frontend/src/pages/DepthPage.tsx"],
+        "tests":["test/stock-logistics.test.js","test/depth-api.test.js","qa/e2e/depth-phases.test.js"],
+        "verification":["ERP Verify run 36324579201 success @ 447f269dbe495d7c42f5d9bd45a64cd821fa4cbd","171/171 unit tests passed","36/36 Electron E2E tests passed","stock-logistics-service.js and migration 184 reached 100% line coverage"]
+      }
+    },
+    {
+      "id":"asset-accounting","name":"Asset Accounting","status":"completed",
+      "evidence":{
+        "implementation":["js/core/database/migrations/185-asset-accounting.js","js/domains/assets/asset-accounting-service.js","server/routers/asset-accounting-router.js","frontend/src/pages/DepthPage.tsx"],
+        "tests":["test/asset-accounting.test.js","test/depth-api.test.js","qa/e2e/depth-phases.test.js"],
+        "verification":["ERP Verify run 36324579201 success @ 447f269dbe495d7c42f5d9bd45a64cd821fa4cbd","171/171 unit tests passed","36/36 Electron E2E tests passed","asset-accounting-service.js and migration 185 reached 100% line coverage"]
+      }
+    }
+  ]
+}

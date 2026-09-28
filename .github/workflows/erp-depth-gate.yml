@@ -1,0 +1,23 @@
+name: ERP Depth Gate
+
+on:
+  push:
+    branches: [feat/erpnext-depth-6-phases]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  roadmap-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate six-phase roadmap manifest
+        run: npm run roadmap:validate
+      - name: Test roadmap gate contract
+        run: node --test test/roadmap-gate.test.js
+      - name: Require all six phases complete
+        run: npm run roadmap:require-complete

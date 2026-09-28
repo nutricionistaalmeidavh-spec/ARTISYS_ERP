@@ -1,0 +1,1 @@
+export function KpiCard({label,value,meta,testId}:{label:string;value:string;meta?:string;testId?:string}){return <section className="advanced-kpi" data-testid={testId}><span>{label}</span><strong>{value}</strong>{meta&&<small>{meta}</small>}</section>}

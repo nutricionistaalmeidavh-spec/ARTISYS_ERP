@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify-and-build:
     runs-on: windows-latest
@@ -14,7 +18,35 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install Lazarus/FPC for ACBr
+        shell: pwsh
+        run: choco install lazarus -y --no-progress
+      - name: Build bundled ACBr runtime
+        shell: pwsh
+        run: ./scripts/build-acbr-runtime.ps1
+      - name: Validate bundled ACBr runtime
+        shell: pwsh
+        run: |
+          $exe = Get-Item fiscal-runtime/acbr/ACBrMonitorPLUS.exe -ErrorAction Stop
+          if ($exe.Length -lt 100KB) { throw 'Bundled ACBrMonitorPLUS.exe unexpectedly small' }
+          if (!(Test-Path fiscal-runtime/acbr/Schemas/NFe)) { throw 'Bundled NFe schemas missing' }
+          if (!(Test-Path fiscal-runtime/acbr/ACBR-LICENSE.TXT)) { throw 'Bundled ACBr license missing' }
+          if (!(Test-Path fiscal-runtime/acbr/SOURCE.txt)) { throw 'Bundled ACBr source notice missing' }
       - run: npm install
+      - name: Real ACBr / SEFAZ homologation smoke when fiscal secrets are configured
+        shell: pwsh
+        env:
+          ERP_FISCAL_A1_BASE64: ${{ secrets.ERP_FISCAL_A1_BASE64 }}
+          ERP_FISCAL_A1_PASSWORD: ${{ secrets.ERP_FISCAL_A1_PASSWORD }}
+          ERP_FISCAL_CSC: ${{ secrets.ERP_FISCAL_CSC }}
+          ERP_FISCAL_CSC_ID: ${{ secrets.ERP_FISCAL_CSC_ID }}
+          ERP_FISCAL_UF: ${{ secrets.ERP_FISCAL_UF }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:ERP_FISCAL_A1_BASE64) -or [string]::IsNullOrWhiteSpace($env:ERP_FISCAL_CSC) -or [string]::IsNullOrWhiteSpace($env:ERP_FISCAL_CSC_ID) -or [string]::IsNullOrWhiteSpace($env:ERP_FISCAL_UF)) {
+            Write-Host 'Fiscal homologation secrets not configured; skipping external SEFAZ smoke.'
+            exit 0
+          }
+          npm run fiscal:homologation
       - run: npm run release:check
       - run: npm run dist:win
       - name: Validate installer artifact
@@ -23,6 +55,10 @@ jobs:
           $files = Get-ChildItem dist/ArtiSys-ERP-*-x64-Setup.exe
           if ($files.Count -lt 1) { throw 'Installer artifact missing' }
           if ($files[0].Length -lt 1MB) { throw 'Installer artifact unexpectedly small' }
+          $packagedAcbr = Get-Item dist/win-unpacked/resources/fiscal/acbr/ACBrMonitorPLUS.exe -ErrorAction Stop
+          if ($packagedAcbr.Length -lt 100KB) { throw 'Packaged ACBrMonitorPLUS.exe unexpectedly small' }
+          if (!(Test-Path dist/win-unpacked/resources/fiscal/acbr/Schemas/NFe)) { throw 'Packaged NFe schemas missing' }
+          if (!(Test-Path dist/win-unpacked/resources/fiscal/acbr/ACBR-LICENSE.TXT)) { throw 'Packaged ACBr license missing' }
       - uses: actions/upload-artifact@v4
         with:
           name: ArtiSys-ERP-Windows

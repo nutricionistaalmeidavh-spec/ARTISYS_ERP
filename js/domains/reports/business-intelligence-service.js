@@ -1,6 +1,6 @@
 'use strict';
 
-function createBusinessIntelligenceService({db,reports,inventoryDepth,mrp=null,now=()=>new Date().toISOString()}={}){
+function createBusinessIntelligenceService({db,reports,inventoryDepth,mrp=null,productPerformance=null,now=()=>new Date().toISOString()}={}){
  function manufacturingOverview(companyId){
   const rows=db.prepare("SELECT status,planned_quantity,completed_quantity,due_at FROM manufacturing_orders WHERE company_id=? AND status!='CANCELLED'").all(String(companyId));
   const open=rows.filter(x=>['PLANNED','RELEASED','IN_PROGRESS'].includes(x.status));
@@ -19,7 +19,7 @@ function createBusinessIntelligenceService({db,reports,inventoryDepth,mrp=null,n
   };
  }
  function overview({from='2000-01-01',to='2999-12-31',companyId='default'}={}){
-  const sales=reports.buildSalesSummary({from,to}),purchases=reports.buildPurchaseSummary({from,to}),inventory=reports.buildInventorySummary(),finance=db.prepare("SELECT COALESCE(SUM(CASE WHEN kind='RECEIVABLE' THEN amount_cents ELSE -amount_cents END),0) net FROM financial_entries WHERE status!='CANCELLED' AND substr(created_at,1,10)>=? AND substr(created_at,1,10)<=?").get(from,to),top=db.prepare("SELECT p.id,p.name,COALESCE(SUM(i.quantity),0) quantity,COALESCE(SUM(i.total_cents),0) total_cents FROM sales_admin_invoice_items i JOIN products p ON p.id=i.product_id JOIN sales_admin_invoices s ON s.id=i.invoice_id WHERE substr(s.created_at,1,10)>=? AND substr(s.created_at,1,10)<=? GROUP BY p.id,p.name ORDER BY total_cents DESC LIMIT 10").all(from,to);
+  const sales=reports.buildSalesSummary({from,to,companyId}),purchases=reports.buildPurchaseSummary({from,to}),inventory=reports.buildInventorySummary(),finance=db.prepare("SELECT COALESCE(SUM(CASE WHEN kind='RECEIVABLE' THEN amount_cents ELSE -amount_cents END),0) net FROM financial_entries WHERE status!='CANCELLED' AND substr(created_at,1,10)>=? AND substr(created_at,1,10)<=?").get(from,to),top=productPerformance?productPerformance.topProducts({companyId,from,to,limit:10}):[];
   let stock={};try{stock=inventoryDepth.analytics();}catch{}
   return{from,to,sales,purchases,inventory,financeNetCents:Number(finance?.net||0),topProducts:top,stock,manufacturing:manufacturingOverview(companyId)};
  }
