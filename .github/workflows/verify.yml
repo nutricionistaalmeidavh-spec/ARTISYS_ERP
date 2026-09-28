@@ -24,3 +24,10 @@ jobs:
       - run: npm rebuild electron
       - name: Run Electron E2E with hard timeout
         run: timeout --signal=TERM --kill-after=30s 12m xvfb-run -a npm run e2e
+      - name: Upload current UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-ui-screenshots
+          path: qa/screenshots-current/*.png
+          if-no-files-found: error
