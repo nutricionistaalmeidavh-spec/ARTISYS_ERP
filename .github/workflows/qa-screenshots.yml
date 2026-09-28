@@ -1,0 +1,25 @@
+name: ERP UI Screenshots
+
+on:
+  pull_request:
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts
+      - run: npm run frontend:build
+      - run: npm rebuild electron
+      - name: Capture five current ERP screens
+        run: xvfb-run -a node --test --test-concurrency=1 qa/e2e/zz-current-ui-screenshots.test.js
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-ui-screenshots
+          path: qa/screenshots-current/*.png
+          if-no-files-found: error
